@@ -3,6 +3,7 @@ import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 const config = [
@@ -184,6 +185,7 @@ const config = [
       '@typescript-eslint/explicit-function-return-type': 'off',
     },
   },
+  eslintConfigPrettier,
 ];
 
 export default config;
