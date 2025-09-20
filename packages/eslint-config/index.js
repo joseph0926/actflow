@@ -20,16 +20,21 @@ const config = [
     ...config,
     files: ['**/*.{ts,tsx}'],
   })),
+  ...tseslint.configs.strictTypeChecked.map((config) => ({
+    ...config,
+    files: ['**/*.{ts,tsx}'],
+  })),
   {
     files: ['**/*.{js,mjs,cjs,jsx}'],
-    ...js.configs.recommended,
     languageOptions: {
       sourceType: 'module',
       ecmaVersion: 2023,
-      globals: {
-        ...globals.node,
-        ...globals.browser,
-      },
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: {
+      'no-var': 'error',
+      'prefer-const': 'error',
+      'no-duplicate-imports': 'error',
     },
   },
   {
@@ -43,14 +48,17 @@ const config = [
       globals: { ...globals.node, ...globals.browser },
     },
     rules: {
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/restrict-template-expressions': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/restrict-template-expressions': [
+        'warn',
+        {
+          allowNumber: true,
+          allowBoolean: true,
+          allowNullish: false,
+          allowRegExp: true,
+        },
+      ],
       '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': ['warn', { ignoreRestArgs: true }],
       '@typescript-eslint/consistent-type-imports': [
         'warn',
         {
@@ -64,19 +72,79 @@ const config = [
           checksVoidReturn: { attributes: false },
         },
       ],
+      '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
+      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': true,
+          'ts-nocheck': true,
+          'ts-check': false,
+          minimumDescriptionLength: 5,
+        },
+      ],
+      '@typescript-eslint/ban-types': [
+        'error',
+        {
+          extendDefaults: true,
+          types: {
+            '{}': {
+              message: 'Use a concrete type or use Record<string, unknown>',
+              fixWith: 'Record<string, unknown>',
+            },
+            object: {
+              message: 'Recommended to use concrete object types or records',
+              fixWith: 'Record<string, unknown>',
+            },
+          },
+        },
+      ],
+      'no-duplicate-imports': 'error',
+      'prefer-template': 'error',
+      'no-console': 'warn',
+      curly: 'error',
+      eqeqeq: ['error', 'smart'],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'fs', message: "Use 'node:fs'." },
+            { name: 'path', message: "Use 'node:path'." },
+            { name: 'os', message: "Use 'node:os'." },
+            { name: 'url', message: "Use 'node:url'." },
+            { name: 'crypto', message: "Use 'node:crypto'." },
+            { name: 'stream', message: "Use 'node:stream'." },
+            { name: 'events', message: "Use 'node:events'." },
+            { name: 'util', message: "Use 'node:util'." },
+          ],
+        },
+      ],
     },
   },
   {
-    files: [
-      'packages/core/**/*',
-      'packages/server/**/*',
-      'packages/adapter-react-query/**/*',
-      'scripts/**/*',
-    ],
-    languageOptions: {
-      globals: { ...globals.node },
-      sourceType: 'module',
-      ecmaVersion: 2023,
+    files: ['packages/server/**/*.{ts,tsx}', 'packages/core/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ExportDefaultDeclaration',
+          message: '라이브러리 패키지에서는 named export만 허용합니다.',
+        },
+      ],
+      '@typescript-eslint/explicit-function-return-type': [
+        'error',
+        {
+          allowExpressions: true,
+          allowTypedFunctionExpressions: true,
+          allowDirectConstAssertionInArrowFunctions: true,
+        },
+      ],
     },
   },
   {
@@ -93,21 +161,28 @@ const config = [
       'react-hooks/exhaustive-deps': 'warn',
       'react/react-in-jsx-scope': 'off',
       'react/jsx-uses-react': 'off',
+
+      'no-restricted-syntax': 'off',
+
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+    },
+  },
+  {
+    files: ['scripts/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'no-console': 'off',
     },
   },
   {
     files: ['**/*.{test,spec}.{ts,tsx,js,jsx}'],
     rules: {
       '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/explicit-function-return-type': 'off',
     },
-  },
-  {
-    rules: {
-      'no-console': 'warn',
-      curly: 'error',
-      eqeqeq: ['error', 'smart'],
-    },
-    linterOptions: { reportUnusedDisableDirectives: 'error' },
   },
 ];
 
