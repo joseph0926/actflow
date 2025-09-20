@@ -9,7 +9,6 @@
     "moduleDetection": "force",
     "resolvePackageJsonExports": true,
     "resolvePackageJsonImports": true,
-
     "jsx": "react-jsx",
     "strict": true,
     "noUncheckedIndexedAccess": true,
@@ -17,20 +16,17 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "useUnknownInCatchVariables": true,
-
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-
     "baseUrl": ".",
     "paths": {
       "@actionflow/*": ["packages/*/src"],
-      "@apps/*": ["apps/*/src"]
+      "@apps/*": ["apps/*/src", "apps/*/app", "apps/*"]
     },
-
     "types": ["node"]
   },
   "exclude": ["node_modules", "dist", ".turbo", ".next"]
