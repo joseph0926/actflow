@@ -1,0 +1,12 @@
+# deps
+node_modules
+
+# turbo
+.turbo
+
+# build
+dist
+build
+
+# test
+coverage

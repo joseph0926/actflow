@@ -1,0 +1,41 @@
+{
+  "name": "actionflow",
+  "version": "0.0.1",
+  "description": "First Variant Pipeline for Next.js Server Actions Based on RSC — Implementing Optimistic Updates, Immediacy/Duplicate Removal, Retries, and Type-Safe Cache Revalidation All at Once.",
+  "private": "true",
+  "main": "index.js",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev --filter=apps/*",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "rimraf .turbo && turbo run clean"
+  },
+  "keywords": [
+    "nextjs",
+    "react",
+    "server-actions",
+    "optimistic-ui",
+    "cache",
+    "revalidateTag",
+    "idempotency",
+    "retry",
+    "typescript",
+    "rsc"
+  ],
+  "author": "joseph0926",
+  "license": "MIT",
+  "packageManager": "pnpm@10.17.0",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "turbo": "^2.5.6"
+  }
+}
