@@ -1,9 +1,10 @@
 import js from '@eslint/js';
-import tseslint from 'typescript-eslint';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import globals from 'globals';
-import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import tseslint from 'typescript-eslint';
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 const config = [
@@ -121,6 +122,33 @@ const config = [
           ],
         },
       ],
+    },
+  },
+  {
+    files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
+    plugins: { 'simple-import-sort': simpleImportSort },
+    rules: {
+      'simple-import-sort/imports': [
+        'error',
+        {
+          groups: [
+            ['^\\u0000'],
+            ['^node:'],
+            [
+              '^(assert|buffer|child_process|cluster|crypto|dgram|dns|domain|events|fs|http|http2|https|net|os|path|perf_hooks|process|punycode|querystring|readline|repl|stream|string_decoder|timers|tls|tty|url|util|v8|vm|zlib)(/.*)?$',
+            ],
+            ['^react$', '^react-dom$', '^next(/.*)?$'],
+            ['^@?\\w'],
+            ['^@actionflow(/.*)?$', '^@tagforge(/.*)?$'],
+            ['^@/'],
+            ['^\\.\\.(?!/?$)', '^\\.\\./'],
+            ['^\\./(?!/?$)', '^\\./'],
+            ['^.+\\.(css|scss|sass|less)$'],
+            ['^.+\\.(svg|png|jpe?g|gif|webp|avif)$'],
+          ],
+        },
+      ],
+      'simple-import-sort/exports': 'error',
     },
   },
   {

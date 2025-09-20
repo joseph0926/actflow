@@ -24,8 +24,8 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,cjs,mjs}": [
-      "prettier --write",
-      "eslint --fix"
+      "eslint --fix",
+      "prettier --write"
     ],
     "*.{json,md,mdx,yml,yaml,css,scss,html}": [
       "prettier --write"
@@ -57,6 +57,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
     "globals": "^16.4.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.6",
