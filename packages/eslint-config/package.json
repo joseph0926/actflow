@@ -1,0 +1,19 @@
+{
+  "name": "@actionflow/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0",
+    "typescript": "*",
+    "typescript-eslint": "*",
+    "eslint-plugin-react": "*",
+    "eslint-plugin-react-hooks": "*",
+    "globals": "*",
+    "@eslint/js": "^9.0.0"
+  }
+}
