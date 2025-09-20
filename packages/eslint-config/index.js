@@ -6,20 +6,51 @@ import globals from 'globals';
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 const config = [
-  { ignores: ['**/dist/**', '**/.turbo/**', '**/coverage/**', '**/node_modules/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/.turbo/**',
+      '**/coverage/**',
+      '**/node_modules/**',
+      '*.config.{js,mjs,cjs,ts}',
+    ],
+  },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked.map((config) => ({
+    ...config,
+    files: ['**/*.{ts,tsx}'],
+  })),
+  {
+    files: ['**/*.{js,mjs,cjs,jsx}'],
+    ...js.configs.recommended,
+    languageOptions: {
+      sourceType: 'module',
+      ecmaVersion: 2023,
+      globals: {
+        ...globals.node,
+        ...globals.browser,
+      },
+    },
+  },
   {
     files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        sourceType: 'module',
+        ecmaVersion: 2023,
+      },
+      globals: { ...globals.node, ...globals.browser },
+    },
     rules: {
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-        },
-      ],
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-floating-promises': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': [
         'warn',
         {
@@ -27,9 +58,14 @@ const config = [
           fixStyle: 'separate-type-imports',
         },
       ],
+      '@typescript-eslint/no-misused-promises': [
+        'warn',
+        {
+          checksVoidReturn: { attributes: false },
+        },
+      ],
     },
   },
-
   {
     files: [
       'packages/core/**/*',
@@ -43,7 +79,6 @@ const config = [
       ecmaVersion: 2023,
     },
   },
-
   {
     files: ['packages/react/**/*.{ts,tsx,js,jsx}'],
     plugins: { react, 'react-hooks': reactHooks },
@@ -60,7 +95,12 @@ const config = [
       'react/jsx-uses-react': 'off',
     },
   },
-
+  {
+    files: ['**/*.{test,spec}.{ts,tsx,js,jsx}'],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'off',
+    },
+  },
   {
     rules: {
       'no-console': 'warn',
