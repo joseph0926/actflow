@@ -18,7 +18,11 @@
     "prettier": "prettier --ignore-unknown '**/*'",
     "prettier:write": "pnpm run prettier --write",
     "test": "turbo run test",
-    "clean": "rimraf .turbo && turbo run clean"
+    "clean": "rimraf .turbo && turbo run clean",
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,cjs,mjs}": "eslint --fix"
   },
   "keywords": [
     "nextjs",
@@ -46,6 +50,8 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^16.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
     "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
     "turbo": "^2.5.6",
