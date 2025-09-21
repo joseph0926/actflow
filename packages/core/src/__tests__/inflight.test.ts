@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { AFErrorException, getAFError } from '../aferror';
 import { InFlightRegistry } from '../inflight';
 
 function deferred<T = void>() {
@@ -46,13 +47,19 @@ describe('InFlightRegistry', () => {
       });
 
     const p1 = reg.run('k', never, { mode: 'latestWins' });
-    const p1Assert = expect(p1).rejects.toMatchObject({ name: 'AbortError' });
+    const p1Assertion = expect(p1).rejects.toBeInstanceOf(AFErrorException);
 
-    // eslint-disable-next-line @typescript-eslint/require-await
-    const op2 = vi.fn(async () => 'B');
+    const op2 = vi.fn(async () => Promise.resolve('B'));
     const p2 = reg.run('k', op2, { mode: 'latestWins' });
 
-    await p1Assert;
+    await p1Assertion;
+    try {
+      await p1;
+    } catch (e) {
+      const af = getAFError(e);
+      expect(af.kind).toBe('cancelled');
+    }
+
     await expect(p2).resolves.toBe('B');
     expect(op2).toHaveBeenCalledTimes(1);
   });
@@ -66,12 +73,19 @@ describe('InFlightRegistry', () => {
 
     const ac = new AbortController();
     const p2 = reg.run('k', op, { mode: 'byKey', signal: ac.signal });
-    const p2Assert = expect(p2).rejects.toMatchObject({ name: 'AbortError' });
+    const p2Assert = expect(p2).rejects.toBeInstanceOf(AFErrorException);
     ac.abort('joiner-cancel');
 
     d.resolve('OK');
     await expect(p1).resolves.toBe('OK');
+
     await p2Assert;
+    try {
+      await p2;
+    } catch (e) {
+      const af = getAFError(e);
+      expect(af.kind).toBe('cancelled');
+    }
     expect(op).toHaveBeenCalledTimes(1);
   });
 });

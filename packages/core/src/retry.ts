@@ -1,10 +1,11 @@
+import { abort, throwAF } from './aferror';
 import {
   type BackoffJitter,
   type BackoffRuntime,
   exponentialBackoff,
   MathRandomRuntime,
 } from './backoff';
-import { createAbortError, isAbortError, RetryExhaustedError } from './errors';
+import { createAbortError, isAbortError } from './errors';
 
 export interface RetryOptions {
   maxRetries?: number;
@@ -122,7 +123,9 @@ export async function executeWithRetry<T>(
     runtime = MathRandomRuntime,
   } = options;
 
-  if (signal?.aborted) throw createAbortError(signal.reason);
+  if (signal?.aborted) abort(signal.reason);
+
+  let lastErr: unknown = undefined;
 
   for (let attempt = 1; attempt <= 1 + maxRetries; attempt += 1) {
     const startedAt = Date.now();
@@ -135,22 +138,30 @@ export async function executeWithRetry<T>(
       onAttemptSuccess?.({ attempt, maxRetries, elapsedMs: Date.now() - startedAt });
       return result;
     } catch (err) {
+      lastErr = err;
       onAttemptFailure?.(err, { attempt, maxRetries, elapsedMs: Date.now() - startedAt });
 
-      if (isAbortError(err)) throw err;
+      if (isAbortError(err)) throwAF(err);
 
       const more = attempt <= maxRetries;
       const retryable = more ? await shouldRetry(err, { attempt, maxRetries }) : false;
-      if (!retryable) throw err;
+      if (!retryable) throwAF(err);
 
       const delay = exponentialBackoff({ attempt, baseMs, factor, maxMs, jitter }, runtime);
-      await sleep(delay, signal);
+      try {
+        await sleep(delay, signal);
+      } catch (sleepErr) {
+        if (isAbortError(sleepErr)) {
+          throwAF(sleepErr);
+        }
+        throw sleepErr;
+      }
     } finally {
       cleanup();
     }
   }
 
-  throw new RetryExhaustedError(1 + maxRetries);
+  throwAF(lastErr);
 }
 
 function linkSignals(parent: AbortSignal | undefined, child: AbortController): () => void {

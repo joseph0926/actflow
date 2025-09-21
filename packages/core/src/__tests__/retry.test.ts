@@ -1,18 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AFErrorException, getAFError } from '../aferror';
 import { defaultShouldRetry, executeWithRetry } from '../retry';
 
 beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2025, 0, 1, 0, 0, 0));
 });
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('executeWithRetry', () => {
   it('resolves on first attempt', async () => {
-    // eslint-disable-next-line
-    const op = vi.fn(async () => 'ok');
+    const op = vi.fn(async () => Promise.resolve('ok'));
     const p = executeWithRetry(op);
-    vi.runAllTicks();
     await expect(p).resolves.toBe('ok');
     expect(op).toHaveBeenCalledTimes(1);
   });
@@ -26,20 +28,29 @@ describe('executeWithRetry', () => {
     const op = vi.fn().mockRejectedValueOnce(new HttpErr(503)).mockResolvedValueOnce('ok');
 
     const p = executeWithRetry(op, { jitter: 'none', baseMs: 100, factor: 2 });
-
     await vi.runOnlyPendingTimersAsync();
     await expect(p).resolves.toBe('ok');
     expect(op).toHaveBeenCalledTimes(2);
   });
 
-  it('does not retry on 4xx-like error', async () => {
+  it('does not retry on 4xx-like error (normalized AFErrorException)', async () => {
     class HttpErr extends Error {
       constructor(public status: number) {
         super(`HTTP ${status}`);
       }
     }
     const op = vi.fn().mockRejectedValue(new HttpErr(400));
-    await expect(executeWithRetry(op)).rejects.toBeInstanceOf(HttpErr);
+
+    const p = executeWithRetry(op);
+    await expect(p).rejects.toBeInstanceOf(AFErrorException);
+
+    try {
+      await p;
+    } catch (e) {
+      const af = getAFError(e);
+      expect(af.kind).toBe('server');
+      expect((af as { status: number }).status).toBe(400);
+    }
     expect(op).toHaveBeenCalledTimes(1);
   });
 
@@ -52,13 +63,18 @@ describe('executeWithRetry', () => {
     const ac = new AbortController();
     const op = vi.fn().mockRejectedValueOnce(new HttpErr(503)).mockResolvedValueOnce('ok');
 
-    const promise = executeWithRetry(op, { signal: ac.signal, jitter: 'none', baseMs: 100 });
-    const assertion = expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+    const p = executeWithRetry(op, { signal: ac.signal, jitter: 'none', baseMs: 100 });
+    const assertion = expect(p).rejects.toBeInstanceOf(AFErrorException);
 
     ac.abort('stop');
-    await vi.runOnlyPendingTimersAsync();
-
     await assertion;
+
+    try {
+      await p;
+    } catch (e) {
+      const af = getAFError(e);
+      expect(af.kind).toBe('cancelled');
+    }
     expect(op).toHaveBeenCalledTimes(1);
   });
 
@@ -70,7 +86,6 @@ describe('executeWithRetry', () => {
           reject(new DOMException('aborted', 'AbortError'));
         };
         signal.addEventListener('abort', onAbort, { once: true });
-
         setTimeout(() => {
           signal.removeEventListener('abort', onAbort);
           resolve('late-ok');
@@ -78,12 +93,18 @@ describe('executeWithRetry', () => {
       });
     });
 
-    const promise = executeWithRetry(op, { signal: ac.signal });
-    const assertion = expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+    const p = executeWithRetry(op, { signal: ac.signal });
+    const assertion = expect(p).rejects.toBeInstanceOf(AFErrorException);
 
     ac.abort('cancel');
     await assertion;
-    vi.runOnlyPendingTimersAsync();
+
+    try {
+      await p;
+    } catch (e) {
+      const af = getAFError(e);
+      expect(af.kind).toBe('cancelled');
+    }
     expect(op).toHaveBeenCalledTimes(1);
   });
 

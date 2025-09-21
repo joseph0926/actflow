@@ -1,3 +1,4 @@
+import { AFErrorException, asAFError } from './aferror';
 import { createAbortError } from './errors';
 
 export type DedupeMode = 'byKey' | 'latestWins' | 'none';
@@ -25,12 +26,11 @@ export class InFlightRegistry {
   ): Promise<T> {
     const mode = options.mode ?? 'byKey';
     const parent = options.signal;
-    const existing = this.entries.get(key);
 
+    const existing = this.entries.get(key);
     if (mode === 'byKey' && existing) {
       return join<T>(existing.promise as Promise<T>, parent);
     }
-
     if (mode === 'latestWins' && existing) {
       existing.controller.abort('replaced');
       this.entries.delete(key);
@@ -42,21 +42,30 @@ export class InFlightRegistry {
     const p = (async () => {
       try {
         return await op({ signal: controller.signal });
+      } catch (e) {
+        throw new AFErrorException(asAFError(e));
       } finally {
         unlink();
       }
     })();
 
-    this.entries.set(key, { controller, promise: p });
-
-    p.finally(() => {
-      const e = this.entries.get(key);
-      if (e && e.promise === p) this.entries.delete(key);
-    }).catch(() => {
-      /* no-op to avoid unhandled */
+    const wrapped = p.catch((e: unknown) => {
+      if (e instanceof AFErrorException) throw e;
+      throw new AFErrorException(asAFError(e));
     });
 
-    return join<T>(p, parent);
+    this.entries.set(key, { controller, promise: wrapped });
+
+    wrapped
+      .finally(() => {
+        const e = this.entries.get(key);
+        if (e && e.promise === wrapped) this.entries.delete(key);
+      })
+      .catch(() => {
+        /* no-op */
+      });
+
+    return join<T>(wrapped, parent);
   }
 }
 
@@ -76,7 +85,7 @@ function join<T>(underlying: Promise<T>, caller?: AbortSignal): Promise<T> {
   if (!caller) return underlying;
   return new Promise<T>((resolve, reject) => {
     const onAbort = (): void => {
-      reject(createAbortError(caller.reason));
+      reject(new AFErrorException({ kind: 'cancelled', reason: createAbortError(caller.reason) }));
     };
     if (caller.aborted) {
       onAbort();
@@ -90,7 +99,7 @@ function join<T>(underlying: Promise<T>, caller?: AbortSignal): Promise<T> {
       },
       (e: unknown) => {
         caller.removeEventListener('abort', onAbort);
-        reject(e as Error);
+        reject(e instanceof AFErrorException ? e : new AFErrorException(asAFError(e)));
       },
     );
   });
