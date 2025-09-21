@@ -154,6 +154,36 @@ const config = [
   {
     files: ['packages/server/**/*.{ts,tsx}', 'packages/core/**/*.{ts,tsx}'],
     rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'react', message: 'Server/Core must not depend on React.' },
+            { name: 'react-dom', message: 'Server/Core must not depend on React DOM.' },
+            { name: 'next/navigation', message: 'Client-only API is forbidden in server/core.' },
+            { name: 'next/link', message: 'Client component forbidden in server/core.' },
+            { name: 'next/image', message: 'Client component forbidden in server/core.' },
+            { name: 'next/head', message: 'Client component forbidden in server/core.' },
+            { name: 'client-only', message: 'Client-only marker is forbidden in server/core.' },
+          ],
+          patterns: [
+            {
+              group: ['@/app/**', '@/components/**', '@/**'],
+              message: 'Do not import app/client aliases in server/core.',
+            },
+            { group: ['**/*.{css,scss,sass,less}'], message: 'No style imports in server/core.' },
+            {
+              group: ['**/*.{png,jpg,jpeg,gif,svg,webp,avif}'],
+              message: 'No asset imports in server/core.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/server/**/*.{ts,tsx}', 'packages/core/**/*.{ts,tsx}'],
+    rules: {
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-unsafe-assignment': 'error',
       '@typescript-eslint/no-unsafe-argument': 'error',
