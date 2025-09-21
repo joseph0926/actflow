@@ -1,15 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
+    "format:check": { "cache": true, "outputs": [] },
     "lint": { "cache": true, "outputs": [] },
-    "dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "clean": {
-      "cache": false
-    }
-  },
-  "globalEnv": ["NODE_ENV", "CI", "NEXT_TELEMETRY_DISABLED"],
-  "globalDependencies": ["**/.env", "**/.env.*", "pnpm-lock.yaml"]
+    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
+    "clean": { "cache": false }
+  }
 }
