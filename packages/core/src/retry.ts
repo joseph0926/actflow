@@ -4,6 +4,7 @@ import {
   exponentialBackoff,
   MathRandomRuntime,
 } from './backoff';
+import { createAbortError, isAbortError, RetryExhaustedError } from './errors';
 
 export interface RetryOptions {
   maxRetries?: number;
@@ -53,29 +54,6 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-function createAbortError(reason?: unknown): Error {
-  if (typeof DOMException !== 'undefined') {
-    // eslint-disable-next-line
-    return new DOMException(String(reason ?? 'Aborted'), 'AbortError') as unknown as Error;
-  }
-  // eslint-disable-next-line
-  const e = new Error(String(reason ?? 'Aborted'));
-  (e as Error & { name: string }).name = 'AbortError';
-  return e;
-}
-
-function isAbortError(err: unknown): boolean {
-  const isDomAbort =
-    typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError';
-  if (isDomAbort) return true;
-
-  if (typeof err === 'object' && err !== null && 'name' in err) {
-    const name = (err as { name?: unknown }).name;
-    return typeof name === 'string' && name === 'AbortError';
-  }
-  return false;
-}
-
 function hasNumberStatus(x: unknown): x is { status: number } {
   return (
     typeof x === 'object' && x !== null && typeof (x as { status?: unknown }).status === 'number'
@@ -102,14 +80,8 @@ function hasStringCode(x: unknown): x is { code: string } {
 export function defaultShouldRetry(err: unknown): boolean {
   if (isAbortError(err)) return false;
 
-  if (hasNumberStatus(err)) {
-    const s = err.status;
-    return s >= 500 && s < 600;
-  }
-  if (hasResponseStatus(err)) {
-    const s = err.response.status;
-    return s >= 500 && s < 600;
-  }
+  if (hasNumberStatus(err)) return err.status >= 500 && err.status < 600;
+  if (hasResponseStatus(err)) return err.response.status >= 500 && err.response.status < 600;
 
   if (hasStringCode(err)) {
     const code = err.code;
@@ -129,7 +101,6 @@ export function defaultShouldRetry(err: unknown): boolean {
   ) {
     return true;
   }
-
   return false;
 }
 
@@ -151,9 +122,7 @@ export async function executeWithRetry<T>(
     runtime = MathRandomRuntime,
   } = options;
 
-  if (signal?.aborted) {
-    throw createAbortError(signal.reason);
-  }
+  if (signal?.aborted) throw createAbortError(signal.reason);
 
   for (let attempt = 1; attempt <= 1 + maxRetries; attempt += 1) {
     const startedAt = Date.now();
@@ -168,15 +137,11 @@ export async function executeWithRetry<T>(
     } catch (err) {
       onAttemptFailure?.(err, { attempt, maxRetries, elapsedMs: Date.now() - startedAt });
 
-      if (isAbortError(err)) {
-        throw err;
-      }
+      if (isAbortError(err)) throw err;
 
       const more = attempt <= maxRetries;
       const retryable = more ? await shouldRetry(err, { attempt, maxRetries }) : false;
-      if (!retryable) {
-        throw err;
-      }
+      if (!retryable) throw err;
 
       const delay = exponentialBackoff({ attempt, baseMs, factor, maxMs, jitter }, runtime);
       await sleep(delay, signal);
@@ -185,7 +150,7 @@ export async function executeWithRetry<T>(
     }
   }
 
-  throw new Error(`Retry attempts exhausted unexpectedly`);
+  throw new RetryExhaustedError(1 + maxRetries);
 }
 
 function linkSignals(parent: AbortSignal | undefined, child: AbortController): () => void {
@@ -194,9 +159,7 @@ function linkSignals(parent: AbortSignal | undefined, child: AbortController): (
     child.abort(parent.reason);
   };
   parent.addEventListener('abort', onAbort, { once: true });
-  if (parent.aborted) {
-    child.abort(parent.reason);
-  }
+  if (parent.aborted) child.abort(parent.reason);
   return () => {
     parent.removeEventListener('abort', onAbort);
   };

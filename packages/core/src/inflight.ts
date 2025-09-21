@@ -1,3 +1,5 @@
+import { createAbortError } from './errors';
+
 export type DedupeMode = 'byKey' | 'latestWins' | 'none';
 
 interface Entry {
@@ -23,7 +25,6 @@ export class InFlightRegistry {
   ): Promise<T> {
     const mode = options.mode ?? 'byKey';
     const parent = options.signal;
-
     const existing = this.entries.get(key);
 
     if (mode === 'byKey' && existing) {
@@ -51,7 +52,9 @@ export class InFlightRegistry {
     p.finally(() => {
       const e = this.entries.get(key);
       if (e && e.promise === p) this.entries.delete(key);
-    }).catch(() => {});
+    }).catch(() => {
+      /* no-op to avoid unhandled */
+    });
 
     return join<T>(p, parent);
   }
@@ -91,15 +94,4 @@ function join<T>(underlying: Promise<T>, caller?: AbortSignal): Promise<T> {
       },
     );
   });
-}
-
-function createAbortError(reason?: unknown): Error {
-  if (typeof DOMException !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    return new DOMException(String(reason ?? 'Aborted'), 'AbortError') as unknown as Error;
-  }
-  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-  const e = new Error(String(reason ?? 'Aborted'));
-  (e as Error & { name: string }).name = 'AbortError';
-  return e;
 }

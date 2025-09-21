@@ -1,3 +1,5 @@
+import { InvalidArgumentError } from './errors';
+
 export type BackoffJitter = 'none' | 'full' | 'half';
 
 export interface ExponentialBackoffOptions {
@@ -19,20 +21,36 @@ export function exponentialBackoff(
   runtime: BackoffRuntime = MathRandomRuntime,
 ): number {
   if (!Number.isFinite(attempt) || attempt <= 0) {
-    throw new Error('attempt must be a positive finite number');
+    throw new InvalidArgumentError(
+      'BACKOFF_INVALID_ATTEMPT',
+      'attempt must be a positive finite number',
+      { attempt },
+    );
   }
   if (!Number.isFinite(baseMs) || baseMs <= 0) {
-    throw new Error('baseMs must be a positive finite number');
+    throw new InvalidArgumentError(
+      'BACKOFF_INVALID_BASE',
+      'baseMs must be a positive finite number',
+      { baseMs },
+    );
   }
   if (!Number.isFinite(factor) || factor < 1) {
-    throw new Error('factor must be finite and >= 1');
+    throw new InvalidArgumentError('BACKOFF_INVALID_FACTOR', 'factor must be finite and >= 1', {
+      factor,
+    });
   }
   if (!Number.isFinite(maxMs) || maxMs <= 0) {
-    throw new Error('maxMs must be a positive finite number');
+    throw new InvalidArgumentError(
+      'BACKOFF_INVALID_MAX',
+      'maxMs must be a positive finite number',
+      { maxMs },
+    );
   }
-
   if (baseMs > maxMs) {
-    throw new Error('baseMs cannot be greater than maxMs');
+    throw new InvalidArgumentError('BACKOFF_BASE_GT_MAX', 'baseMs cannot be greater than maxMs', {
+      baseMs,
+      maxMs,
+    });
   }
 
   const raw = baseMs * Math.pow(factor, attempt - 1);
@@ -57,13 +75,19 @@ export function backoffSchedule(
   runtime: BackoffRuntime = MathRandomRuntime,
 ): number[] {
   if (!Number.isInteger(count)) {
-    throw new Error('count must be an integer');
+    throw new InvalidArgumentError('SCHEDULE_INVALID_COUNT', 'count must be an integer', { count });
   }
   if (count < 0) {
-    throw new Error('count must be non-negative');
+    throw new InvalidArgumentError('SCHEDULE_NEGATIVE_COUNT', 'count must be non-negative', {
+      count,
+    });
   }
   if (count > 100) {
-    throw new Error('count must be <= 100 (consider pagination for larger schedules)');
+    throw new InvalidArgumentError(
+      'SCHEDULE_TOO_LARGE',
+      'count must be <= 100 (consider pagination for larger schedules)',
+      { count },
+    );
   }
 
   const n = Math.max(0, Math.floor(count));
