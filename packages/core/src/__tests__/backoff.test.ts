@@ -10,6 +10,15 @@ describe('exponentialBackoff', () => {
     expect(exponentialBackoff({ attempt: -1, jitter: 'none' })).toBe(0);
   });
 
+  it('should throw Error for non-positive baseMs', () => {
+    expect(() => exponentialBackoff({ attempt: 1, baseMs: -100 })).toThrowError(
+      'baseMs must be positive',
+    );
+    expect(() => exponentialBackoff({ attempt: 1, baseMs: 0 })).toThrowError(
+      'baseMs must be positive',
+    );
+  });
+
   it('scales by factor and respects cap without jitter', () => {
     expect(
       exponentialBackoff({

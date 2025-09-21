@@ -22,9 +22,11 @@ export function exponentialBackoff(
     return 0;
   }
 
-  const safeBase = baseMs < 0 ? 0 : baseMs;
+  if (baseMs <= 0) {
+    throw new Error('baseMs must be positive');
+  }
   const safeFactor = factor < 1 ? 1 : factor;
-  const raw = safeBase * Math.pow(safeFactor, attempt - 1);
+  const raw = baseMs * Math.pow(safeFactor, attempt - 1);
   const capped = Math.min(raw, maxMs);
 
   if (jitter === 'none') {
