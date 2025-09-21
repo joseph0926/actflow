@@ -5,11 +5,14 @@ import { type BackoffRuntime, backoffSchedule, exponentialBackoff } from '../bac
 const rng = (v: number): BackoffRuntime => ({ random: () => v });
 
 describe('exponentialBackoff', () => {
-  it('returns 0 for non-positive attempts', () => {
-    expect(exponentialBackoff({ attempt: 0, jitter: 'none' })).toBe(0);
-    expect(exponentialBackoff({ attempt: -1, jitter: 'none' })).toBe(0);
+  it('should throw Error for non-positive attempts', () => {
+    expect(() => exponentialBackoff({ attempt: 0, jitter: 'none' })).toThrowError(
+      'attempt must be a positive finite number',
+    );
+    expect(() => exponentialBackoff({ attempt: -1, jitter: 'none' })).toThrowError(
+      'attempt must be a positive finite number',
+    );
   });
-
   it('should throw Error for non-positive baseMs', () => {
     expect(() => exponentialBackoff({ attempt: 1, baseMs: -100 })).toThrowError(
       'baseMs must be positive',

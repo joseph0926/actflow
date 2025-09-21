@@ -19,14 +19,23 @@ export function exponentialBackoff(
   runtime: BackoffRuntime = MathRandomRuntime,
 ): number {
   if (!Number.isFinite(attempt) || attempt <= 0) {
-    return 0;
+    throw new Error('attempt must be a positive finite number');
+  }
+  if (!Number.isFinite(baseMs) || baseMs <= 0) {
+    throw new Error('baseMs must be a positive finite number');
+  }
+  if (!Number.isFinite(factor) || factor < 1) {
+    throw new Error('factor must be finite and >= 1');
+  }
+  if (!Number.isFinite(maxMs) || maxMs <= 0) {
+    throw new Error('maxMs must be a positive finite number');
   }
 
-  if (baseMs <= 0) {
-    throw new Error('baseMs must be positive');
+  if (baseMs > maxMs) {
+    throw new Error('baseMs cannot be greater than maxMs');
   }
-  const safeFactor = factor < 1 ? 1 : factor;
-  const raw = baseMs * Math.pow(safeFactor, attempt - 1);
+
+  const raw = baseMs * Math.pow(factor, attempt - 1);
   const capped = Math.min(raw, maxMs);
 
   if (jitter === 'none') {
@@ -47,6 +56,16 @@ export function backoffSchedule(
   opts: Omit<ExponentialBackoffOptions, 'attempt'> = {},
   runtime: BackoffRuntime = MathRandomRuntime,
 ): number[] {
+  if (!Number.isInteger(count)) {
+    throw new Error('count must be an integer');
+  }
+  if (count < 0) {
+    throw new Error('count must be non-negative');
+  }
+  if (count > 100) {
+    throw new Error('count must be <= 100 (consider pagination for larger schedules)');
+  }
+
   const n = Math.max(0, Math.floor(count));
   const out: number[] = [];
   for (let i = 1; i <= n; i += 1) {
