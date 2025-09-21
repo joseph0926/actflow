@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit",
     "clean": "rimraf dist tsconfig.tsbuildinfo"
   },
   "packageManager": "pnpm@10.17.0",

@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  eslint-config-prettier: 10.1.8
+
 importers:
 
   .:
@@ -27,14 +30,11 @@ importers:
       '@types/react-dom':
         specifier: ^19.1.9
         version: 19.1.9(@types/react@19.1.13)
-      '@typescript-eslint/parser':
-        specifier: latest
-        version: 8.44.0(eslint@9.36.0)(typescript@5.9.2)
       eslint:
         specifier: ^9.36.0
         version: 9.36.0
       eslint-config-prettier:
-        specifier: ^10.1.8
+        specifier: 10.1.8
         version: 10.1.8(eslint@9.36.0)
       eslint-import-resolver-typescript:
         specifier: ^4.4.4
@@ -107,7 +107,7 @@ importers:
         specifier: ^9.0.0
         version: 9.36.0
       eslint-config-prettier:
-        specifier: ^10.1.8
+        specifier: 10.1.8
         version: 10.1.8(eslint@9.36.0)
       eslint-plugin-import:
         specifier: ^2.32.0

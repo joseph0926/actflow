@@ -3,9 +3,11 @@
   "tasks": {
     "format:check": { "cache": true, "outputs": [] },
     "lint": { "cache": true, "outputs": [] },
+    "typecheck": { "cache": true, "outputs": [] },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
+      "outputs": ["dist/**", "tsconfig.tsbuildinfo"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"]
     },
     "clean": { "cache": false }
   }
