@@ -23,5 +23,8 @@
   "packageManager": "pnpm@10.17.0",
   "devDependencies": {
     "@actionflow/eslint-config": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

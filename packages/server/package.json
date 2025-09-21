@@ -26,5 +26,8 @@
   },
   "devDependencies": {
     "@actionflow/eslint-config": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
