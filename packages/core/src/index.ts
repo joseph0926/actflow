@@ -1,3 +1,4 @@
+export * from './aferror';
 export * from './backoff';
 export * from './errors';
 export * from './inflight';
