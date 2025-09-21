@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import importPlugin from 'eslint-plugin-import';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
@@ -48,6 +49,17 @@ const config = [
         ecmaVersion: 2023,
       },
       globals: { ...globals.node, ...globals.browser },
+    },
+    settings: {
+      'import/resolver': {
+        typescript: {
+          alwaysTryTypes: true,
+          project: ['packages/*/tsconfig.json'],
+        },
+        node: {
+          extensions: ['.js', '.mjs', '.cjs', '.ts', '.tsx', '.d.ts'],
+        },
+      },
     },
     rules: {
       '@typescript-eslint/restrict-template-expressions': [
@@ -126,7 +138,7 @@ const config = [
   },
   {
     files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
-    plugins: { 'simple-import-sort': simpleImportSort },
+    plugins: { 'simple-import-sort': simpleImportSort, import: importPlugin },
     rules: {
       'simple-import-sort/imports': [
         'error',
@@ -149,11 +161,43 @@ const config = [
         },
       ],
       'simple-import-sort/exports': 'error',
+      'import/no-cycle': ['error', { maxDepth: 3, ignoreExternal: true }],
+      'import/no-extraneous-dependencies': [
+        'error',
+        {
+          devDependencies: [
+            '**/*.test.*',
+            '**/*.spec.*',
+            '**/tests/**',
+            'scripts/**',
+            '**/*.config.*',
+            'packages/**/vitest.config.*',
+            'packages/**/vite.config.*',
+          ],
+        },
+      ],
     },
   },
   {
     files: ['packages/server/**/*.{ts,tsx}', 'packages/core/**/*.{ts,tsx}'],
     rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      'no-restricted-syntax': [
+        'error',
+        { selector: 'ExportDefaultDeclaration', message: 'Use named exports in library packages.' },
+      ],
+      '@typescript-eslint/explicit-function-return-type': [
+        'error',
+        {
+          allowExpressions: true,
+          allowTypedFunctionExpressions: true,
+          allowDirectConstAssertionInArrowFunctions: true,
+        },
+      ],
       'no-restricted-imports': [
         'error',
         {
@@ -182,26 +226,62 @@ const config = [
     },
   },
   {
-    files: ['packages/server/**/*.{ts,tsx}', 'packages/core/**/*.{ts,tsx}'],
+    files: ['packages/core/**/*.{ts,tsx,js,jsx}'],
     rules: {
-      '@typescript-eslint/no-floating-promises': 'error',
-      '@typescript-eslint/no-unsafe-assignment': 'error',
-      '@typescript-eslint/no-unsafe-argument': 'error',
-      '@typescript-eslint/no-unsafe-member-access': 'error',
-      '@typescript-eslint/no-unsafe-return': 'error',
-      'no-restricted-syntax': [
+      'no-restricted-imports': [
         'error',
         {
-          selector: 'ExportDefaultDeclaration',
-          message: '라이브러리 패키지에서는 named export만 허용합니다.',
+          patterns: [
+            {
+              group: ['@actionflow/react', '@actionflow/server', '@actionflow/adapter-react-query'],
+              message: 'core must not depend on higher layers.',
+            },
+          ],
         },
       ],
-      '@typescript-eslint/explicit-function-return-type': [
+    },
+  },
+  {
+    files: ['packages/server/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
         'error',
         {
-          allowExpressions: true,
-          allowTypedFunctionExpressions: true,
-          allowDirectConstAssertionInArrowFunctions: true,
+          patterns: [
+            {
+              group: ['@actionflow/react', '@actionflow/adapter-react-query'],
+              message: 'server can depend only on @actionflow/core.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/react/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['@actionflow/server'], message: 'react must not depend on server.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/adapter-react-query/**/*.{ts,tsx,js,jsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@actionflow/server'],
+              message: 'adapter-react-query must not depend on server.',
+            },
+          ],
         },
       ],
     },
@@ -220,9 +300,7 @@ const config = [
       'react-hooks/exhaustive-deps': 'warn',
       'react/react-in-jsx-scope': 'off',
       'react/jsx-uses-react': 'off',
-
       'no-restricted-syntax': 'off',
-
       '@typescript-eslint/no-non-null-assertion': 'warn',
     },
   },
