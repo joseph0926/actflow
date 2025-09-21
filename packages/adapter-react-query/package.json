@@ -28,6 +28,6 @@
     "@actionflow/eslint-config": "workspace:*"
   },
   "peerDependencies": {
-    "react": "^18.2.0 || ^19.1.0"
+    "react": "^18.2.0 || ^19.1.1"
   }
 }
