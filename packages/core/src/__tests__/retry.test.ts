@@ -87,8 +87,8 @@ describe('executeWithRetry', () => {
     expect(op).toHaveBeenCalledTimes(1);
   });
 
-  it('defaultShouldRetry treats common network messages as retryable', async () => {
+  it('defaultShouldRetry treats common network messages as retryable', () => {
     const err = new TypeError('NetworkError: request failed');
-    await expect(defaultShouldRetry(err)).resolves.toBe(true);
+    expect(defaultShouldRetry(err)).toBe(true);
   });
 });
