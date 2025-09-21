@@ -18,6 +18,8 @@
   "scripts": {
     "build": "tsc -p .",
     "typecheck": "tsc -p . --noEmit",
+    "test": "vitest --run",
+    "test:watch": "vitest",
     "clean": "rimraf dist tsconfig.tsbuildinfo"
   },
   "packageManager": "pnpm@10.17.0",
@@ -26,6 +28,9 @@
   },
   "devDependencies": {
     "@actionflow/eslint-config": "workspace:*"
+  },
+  "peerDependencies": {
+    "vitest": "^3.2.4"
   },
   "publishConfig": {
     "access": "public"

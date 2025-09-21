@@ -4,6 +4,7 @@
     "format:check": { "cache": true, "outputs": [] },
     "lint": { "cache": true, "outputs": [] },
     "typecheck": { "cache": true, "outputs": [] },
+    "test": { "cache": true, "outputs": [] },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "tsconfig.tsbuildinfo"],

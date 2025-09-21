@@ -32,5 +32,9 @@ jobs:
         run: pnpm -w format:check
       - name: Lint
         run: pnpm -w lint
+      - name: Typecheck
+        run: pnpm -w typecheck
+      - name: Test
+        run: pnpm -w test
       - name: Build
         run: pnpm -w build

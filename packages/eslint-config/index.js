@@ -15,7 +15,7 @@ const config = [
       '**/.turbo/**',
       '**/coverage/**',
       '**/node_modules/**',
-      '*.config.{js,mjs,cjs,ts}',
+      'eslint.config.{js,mjs,cjs,ts}',
     ],
   },
   js.configs.recommended,
@@ -96,22 +96,6 @@ const config = [
           'ts-nocheck': true,
           'ts-check': false,
           minimumDescriptionLength: 5,
-        },
-      ],
-      '@typescript-eslint/ban-types': [
-        'error',
-        {
-          extendDefaults: true,
-          types: {
-            '{}': {
-              message: 'Use a concrete type or use Record<string, unknown>',
-              fixWith: 'Record<string, unknown>',
-            },
-            object: {
-              message: 'Recommended to use concrete object types or records',
-              fixWith: 'Record<string, unknown>',
-            },
-          },
         },
       ],
       'no-duplicate-imports': 'error',
@@ -223,6 +207,12 @@ const config = [
           ],
         },
       ],
+    },
+  },
+  {
+    files: ['packages/*/vitest.config.ts'],
+    rules: {
+      'no-restricted-syntax': 'off',
     },
   },
   {

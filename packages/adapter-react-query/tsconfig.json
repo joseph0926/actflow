@@ -13,9 +13,11 @@
     "stripInternal": true,
     "rootDir": "src",
     "outDir": "dist",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "types": ["vitest/globals"]
   },
   "references": [{ "path": "../core" }, { "path": "../react" }],
-  "include": ["src"],
+  "include": ["src", "*.config.ts"],
   "exclude": ["dist", "node_modules"]
 }
