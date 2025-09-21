@@ -3,6 +3,7 @@ node_modules
 
 # turbo
 .turbo
+tsconfig.tsbuildinfo
 
 # build
 dist

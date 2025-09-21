@@ -2,15 +2,32 @@
   "name": "@actionflow/adapter-react-query",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p .",
+    "clean": "rimraf dist tsconfig.tsbuildinfo"
+  },
   "packageManager": "pnpm@10.17.0",
+  "dependencies": {
+    "@actionflow/core": "workspace:*",
+    "@actionflow/react": "workspace:*"
+  },
   "devDependencies": {
     "@actionflow/eslint-config": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.1.0"
   }
 }

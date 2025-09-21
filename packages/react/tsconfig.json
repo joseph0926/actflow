@@ -1,13 +1,22 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "composite": true,
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "verbatimModuleSyntax": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "stripInternal": true,
+    "rootDir": "src",
+    "outDir": "dist",
     "skipLibCheck": true
   },
-  "include": ["src", "index.ts", "index.tsx"],
+  "references": [{ "path": "../core" }],
+  "include": ["src"],
   "exclude": ["dist", "node_modules"]
 }

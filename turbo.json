@@ -3,7 +3,10 @@
   "tasks": {
     "format:check": { "cache": true, "outputs": [] },
     "lint": { "cache": true, "outputs": [] },
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
+    },
     "clean": { "cache": false }
   }
 }

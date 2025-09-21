@@ -29,3 +29,5 @@ jobs:
         run: pnpm -w format:check
       - name: Lint
         run: pnpm -w lint
+      - name: Build
+        run: pnpm -w build
