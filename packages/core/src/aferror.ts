@@ -140,7 +140,6 @@ export function asAFError(err: unknown): AFError {
   }
   if (isAbortError(err)) return withMessage({ kind: 'cancelled', cause: err });
 
-  console.log(err instanceof InvalidArgumentError);
   if (err instanceof InvalidArgumentError) {
     return withMessage({ kind: 'internal', code: err.code, cause: err });
   }
