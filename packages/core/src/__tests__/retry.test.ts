@@ -112,4 +112,25 @@ describe('executeWithRetry', () => {
     const err = new TypeError('NetworkError: request failed');
     expect(defaultShouldRetry(err)).toBe(true);
   });
+
+  it('does not retry on 4xx-like error (normalized AFErrorException)', async () => {
+    class HttpErr extends Error {
+      constructor(public status: number) {
+        super(`HTTP ${status}`);
+      }
+    }
+    const op = vi.fn().mockRejectedValue(new HttpErr(400));
+
+    const p = executeWithRetry(op);
+    await expect(p).rejects.toBeInstanceOf(AFErrorException);
+
+    try {
+      await p;
+    } catch (e) {
+      const af = getAFError(e);
+      expect(af.kind).toBe('server');
+      expect((af as { status: number }).status).toBe(400);
+    }
+    expect(op).toHaveBeenCalledTimes(1);
+  });
 });
