@@ -6,7 +6,10 @@ export type InvalidArgumentCode =
   | 'BACKOFF_BASE_GT_MAX'
   | 'SCHEDULE_INVALID_COUNT'
   | 'SCHEDULE_NEGATIVE_COUNT'
-  | 'SCHEDULE_TOO_LARGE';
+  | 'SCHEDULE_TOO_LARGE'
+  | 'IDEMP_EMPTY'
+  | 'IDEMP_CIRCULAR'
+  | 'IDEMP_UNSUPPORTED_TYPE';
 
 export class InvalidArgumentError extends Error {
   readonly name = 'InvalidArgumentError';
@@ -30,21 +33,19 @@ export class RetryExhaustedError extends Error {
 }
 
 export function createAbortError(reason?: unknown): Error {
-  if (typeof DOMException !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    return new DOMException(String(reason ?? 'Aborted'), 'AbortError') as unknown as Error;
+  if (typeof DOMException === 'undefined') {
+    throw new Error('This library requires Node.js 18+ or a modern browser');
   }
   // eslint-disable-next-line @typescript-eslint/no-base-to-string
-  const e = new Error(String(reason ?? 'Aborted'));
-  (e as Error & { name: string }).name = 'AbortError';
-  return e;
+  return new DOMException(String(reason ?? 'Aborted'), 'AbortError');
 }
 
 export function isAbortError(err: unknown): boolean {
   const isDom =
     typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError';
-  if (isDom) return true;
+
   return (
-    typeof err === 'object' && err !== null && (err as { name?: unknown }).name === 'AbortError'
+    isDom ||
+    (typeof err === 'object' && err !== null && (err as { name?: unknown }).name === 'AbortError')
   );
 }
