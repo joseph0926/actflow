@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from './errors';
-import { isPlainObject } from './utils/object';
+import { isPlainObject } from './utils';
 
 export interface IdempotencyKeyOptions {
   prefix?: string;

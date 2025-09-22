@@ -1,42 +1,175 @@
 import { createAbortError, InvalidArgumentError, isAbortError } from './errors';
+import { isSomeError } from './utils';
 
-export type AFError =
+export type AFErrorKind =
+  | 'validation'
+  | 'auth'
+  | 'server'
+  | 'conflict'
+  | 'network'
+  | 'cancelled'
+  | 'internal';
+
+export interface AFErrorBase {
+  kind: AFErrorKind;
+  message: string;
+  code?: string;
+  status?: number;
+  reason?: string;
+  issues?: readonly unknown[];
+  cause?: unknown;
+}
+
+type AFConflictReason = 'HTTP_409' | 'UNIQUE_CONSTRAINT' | 'REVISION_MISMATCH';
+type AFNetworkReason = 'TIMEOUT' | 'CONNRESET' | 'DNS' | 'UNREACHABLE';
+
+type AFErrorTightening =
   | { kind: 'validation'; issues: readonly unknown[] }
-  | { kind: 'auth'; code?: string }
-  | { kind: 'network'; cause?: unknown }
-  | { kind: 'server'; status?: number; code?: string; cause?: unknown }
-  | { kind: 'conflict'; reason?: string; cause?: unknown }
-  | { kind: 'cancelled'; reason?: unknown }
-  | { kind: 'internal'; code?: string; cause?: unknown };
+  | { kind: 'auth'; status?: 401 | 403 }
+  | { kind: 'server'; status: number }
+  | { kind: 'conflict'; reason?: AFConflictReason }
+  | { kind: 'network'; reason?: AFNetworkReason }
+  | { kind: 'cancelled' }
+  | { kind: 'internal' };
 
-export function isAFError(e: unknown): e is AFError {
-  return typeof e === 'object' && e !== null && 'kind' in e;
+export type AFError = AFErrorBase & AFErrorTightening;
+
+const KINDS = new Set<AFErrorKind>([
+  'validation',
+  'auth',
+  'server',
+  'conflict',
+  'network',
+  'cancelled',
+  'internal',
+]);
+const CONFLICT_REASONS = new Set<AFConflictReason>([
+  'HTTP_409',
+  'UNIQUE_CONSTRAINT',
+  'REVISION_MISMATCH',
+]);
+const NETWORK_REASONS = new Set<AFNetworkReason>(['TIMEOUT', 'CONNRESET', 'DNS', 'UNREACHABLE']);
+
+const hasOwn = (o: object, k: PropertyKey): boolean => Object.hasOwn(o, k);
+
+function cleanFreeze(a: AFError): AFError {
+  const { kind, message, code, status, reason, issues, cause } = a;
+  const out = { kind, message, code, status, reason, issues, cause };
+  return Object.freeze(out) as AFError;
+}
+
+export function isAFErrorShape(e: unknown): e is AFError {
+  if (typeof e !== 'object' || e === null) return false;
+  const any = e as Record<string, unknown>;
+  return (
+    hasOwn(any, 'kind') &&
+    typeof any.kind === 'string' &&
+    KINDS.has(any.kind as AFErrorKind) &&
+    hasOwn(any, 'message') &&
+    typeof any.message === 'string'
+  );
+}
+
+export function isAFErrorStrict(x: unknown): x is AFError {
+  if (!isAFErrorShape(x)) return false;
+  const a = x;
+
+  if (a.code !== undefined && typeof a.code !== 'string') return false;
+  if (a.status !== undefined && typeof a.status !== 'number') return false;
+  if (a.issues !== undefined && !Array.isArray(a.issues)) return false;
+
+  switch (a.kind) {
+    case 'server':
+      return typeof a.status === 'number';
+    case 'validation':
+      return Array.isArray(a.issues);
+    case 'auth':
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      return a.status === 401 || a.status === 403 || a.status === undefined;
+    case 'conflict':
+      return a.reason === undefined || CONFLICT_REASONS.has(a.reason as AFConflictReason);
+    case 'network':
+      return a.reason === undefined || NETWORK_REASONS.has(a.reason as AFNetworkReason);
+    case 'cancelled':
+    case 'internal':
+      return true;
+  }
+}
+
+export type ParseMode = 'repair' | 'reject';
+export interface ParseOptions {
+  mode?: ParseMode;
+  onViolation?: (v: { field: string; issue: string; got: unknown; fixedTo?: unknown }) => void;
+}
+
+export function parseAFErrorFromWire(x: unknown, opts: ParseOptions = {}): AFError {
+  const mode = opts.mode ?? 'repair';
+
+  if (isAFErrorStrict(x)) return cleanFreeze(x);
+
+  if (mode === 'reject') {
+    throw new Error('Invalid AFError payload');
+  }
+
+  return asAFError(x);
 }
 
 export class AFErrorException extends Error {
   readonly name = 'AFErrorException';
   constructor(public readonly af: AFError) {
-    super(formatAFMessage(af), 'cause' in af ? { cause: af.cause } : undefined);
+    super(af.message, af.cause ? { cause: af.cause } : undefined);
   }
 }
 
 export function isAFErrorException(e: unknown): e is AFErrorException {
-  return (
-    e instanceof AFErrorException ||
-    (typeof e === 'object' &&
-      e !== null &&
-      (e as { name: string }).name === 'AFErrorException' &&
-      'af' in e)
-  );
+  return isSomeError(e, 'AFErrorException');
+}
+export function isAFError(e: unknown): e is AFError {
+  return isAFErrorShape(e);
 }
 
 export function getAFError(e: unknown): AFError {
   if (isAFErrorException(e)) return e.af;
-  if (isAFError(e)) return e;
+  if (isAFErrorShape(e)) return e;
   return asAFError(e);
 }
 
-function formatAFMessage(af: AFError): string {
+export function asAFError(err: unknown): AFError {
+  if (isAFErrorShape(err)) {
+    return cleanFreeze(err);
+  }
+  if (isAbortError(err)) return withMessage({ kind: 'cancelled', cause: err });
+
+  console.log(err instanceof InvalidArgumentError);
+  if (err instanceof InvalidArgumentError) {
+    return withMessage({ kind: 'internal', code: err.code, cause: err });
+  }
+
+  const status = extractStatus(err);
+  if (status === 401) return withMessage({ kind: 'auth', status, code: 'UNAUTHENTICATED' });
+  if (status === 403) return withMessage({ kind: 'auth', status, code: 'FORBIDDEN' });
+
+  const { hit, reason, code } = detectConflict(err);
+  if (hit)
+    return withMessage({ kind: 'conflict', reason, code, status: status ?? 409, cause: err });
+
+  if (typeof status === 'number') {
+    return withMessage({ kind: 'server', status, cause: err });
+  }
+
+  if (isLikelyNetwork(err)) {
+    const code = extractCode(err);
+    const reason: AFNetworkReason | undefined = inferNetworkReason(code, extractMessage(err));
+    return withMessage({ kind: 'network', reason, code, cause: err });
+  }
+
+  return withMessage({ kind: 'internal', cause: err });
+}
+
+function withMessage(af: Omit<AFError, 'message'>): AFError {
+  return cleanFreeze({ ...af, message: formatAFMessage(af) } as AFError);
+}
+function formatAFMessage(af: Omit<AFError, 'message'>): string {
   switch (af.kind) {
     case 'cancelled':
       return 'Cancelled';
@@ -66,7 +199,6 @@ function extractStatus(e: unknown): number | undefined {
   }
   return undefined;
 }
-
 function extractCode(e: unknown): string | undefined {
   if (typeof e === 'object' && e !== null) {
     const c = (e as { code?: unknown }).code;
@@ -74,7 +206,6 @@ function extractCode(e: unknown): string | undefined {
   }
   return undefined;
 }
-
 function extractMessage(e: unknown): string | undefined {
   if (typeof e === 'object' && e !== null) {
     const m = (e as { message?: unknown }).message;
@@ -82,18 +213,17 @@ function extractMessage(e: unknown): string | undefined {
   }
   return undefined;
 }
-
-function isConflict(e: unknown): { hit: boolean; reason?: string } {
+function detectConflict(e: unknown): { hit: boolean; reason?: AFConflictReason; code?: string } {
   const status = extractStatus(e);
   if (status === 409) return { hit: true, reason: 'HTTP_409' };
   const code = extractCode(e);
-  if (code && /P2002|E?CONFLICT/i.test(code)) return { hit: true, reason: code };
+  if (code && /P2002|E?CONFLICT/i.test(code))
+    return { hit: true, reason: 'UNIQUE_CONSTRAINT', code };
   const msg = extractMessage(e);
   if (msg && /unique constraint|conflict/i.test(msg))
     return { hit: true, reason: 'UNIQUE_CONSTRAINT' };
   return { hit: false };
 }
-
 function isLikelyNetwork(e: unknown): boolean {
   const code = extractCode(e);
   if (
@@ -107,31 +237,25 @@ function isLikelyNetwork(e: unknown): boolean {
     typeof msg === 'string' && /(Network|fetch|socket|timeout|timed out|ECONN|ENET|EAI)/i.test(msg)
   );
 }
+function inferNetworkReason(code?: string, msg?: string): AFNetworkReason | undefined {
+  if (!code && !msg) return undefined;
+  const s = (code ?? msg ?? '').toUpperCase();
+  if (s.includes('TIMEDOUT') || s.includes('TIMEOUT')) return 'TIMEOUT';
+  if (s.includes('CONNRESET')) return 'CONNRESET';
+  if (s.includes('DNS')) return 'DNS';
+  if (s.includes('UNREACH')) return 'UNREACHABLE';
+  return undefined;
+}
 
-export function asAFError(err: unknown): AFError {
-  if (isAFError(err)) return err;
-  if (isAbortError(err)) return { kind: 'cancelled', reason: err };
-
-  if (err instanceof InvalidArgumentError) {
-    return { kind: 'internal', code: err.code, cause: err };
-  }
-
-  const status = extractStatus(err);
-  if (status === 401) return { kind: 'auth', code: 'UNAUTHENTICATED' };
-  if (status === 403) return { kind: 'auth', code: 'FORBIDDEN' };
-
-  const conflict = isConflict(err);
-  if (conflict.hit) return { kind: 'conflict', reason: conflict.reason, cause: err };
-
-  if (typeof status === 'number') {
-    return { kind: 'server', status, cause: err };
-  }
-
-  if (isLikelyNetwork(err)) {
-    return { kind: 'network', cause: err };
-  }
-
-  return { kind: 'internal', cause: err };
+export function isRetryable(af: AFError): boolean {
+  if (af.kind === 'network') return true;
+  if (
+    af.kind === 'server' &&
+    typeof af.status === 'number' &&
+    [408, 429, 500, 502, 503, 504].includes(af.status)
+  )
+    return true;
+  return false;
 }
 
 export function throwAF(err: unknown): never {
@@ -139,5 +263,5 @@ export function throwAF(err: unknown): never {
 }
 
 export function abort(reason?: unknown): never {
-  throw new AFErrorException({ kind: 'cancelled', reason: createAbortError(reason) });
+  throw new AFErrorException(withMessage({ kind: 'cancelled', cause: createAbortError(reason) }));
 }

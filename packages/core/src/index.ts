@@ -1,5 +1,4 @@
 export * from './aferror';
-export * from './backoff';
 export * from './errors';
 export * from './idempotency';
 export * from './inflight';
