@@ -25,6 +25,7 @@
     "changeset": "changeset",
     "release:version": "changeset version && pnpm -w install --no-frozen-lockfile",
     "release:publish": "pnpm -w build && changeset publish",
+    "tree": "tree -I 'node_modules|.git|.turbo|dist'",
     "prepare": "husky install"
   },
   "lint-staged": {
