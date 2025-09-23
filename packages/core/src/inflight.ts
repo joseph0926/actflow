@@ -1,5 +1,4 @@
 import { AFErrorException, asAFError } from './aferror';
-import { createAbortError } from './errors';
 
 export type DedupeMode = 'byKey' | 'latestWins' | 'none';
 
@@ -85,7 +84,13 @@ function join<T>(underlying: Promise<T>, caller?: AbortSignal): Promise<T> {
   if (!caller) return underlying;
   return new Promise<T>((resolve, reject) => {
     const onAbort = (): void => {
-      reject(new AFErrorException({ kind: 'cancelled', reason: createAbortError(caller.reason) }));
+      reject(
+        new AFErrorException({
+          kind: 'cancelled',
+          reason: String(caller.reason ?? 'Aborted'),
+          message: '',
+        }),
+      );
     };
     if (caller.aborted) {
       onAbort();
