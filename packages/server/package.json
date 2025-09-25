@@ -22,7 +22,7 @@
     "test:watch": "vitest",
     "clean": "rimraf dist tsconfig.tsbuildinfo"
   },
-  "packageManager": "pnpm@10.17.0",
+  "packageManager": "pnpm@10.17.1",
   "dependencies": {
     "@actionflow/core": "workspace:*"
   },

@@ -56,7 +56,7 @@
   ],
   "author": "joseph0926",
   "license": "MIT",
-  "packageManager": "pnpm@10.17.0",
+  "packageManager": "pnpm@10.17.1",
   "engines": {
     "node": ">=22.19.0"
   },
