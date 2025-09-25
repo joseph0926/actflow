@@ -7,5 +7,10 @@
   "updateInternalDependencies": "patch",
   "linked": [],
   "fixed": [],
-  "ignore": ["@actionflow/eslint-config"]
+  "ignore": [
+    "@actionflow/eslint-config",
+    "@actionflow/react",
+    "@actionflow/server",
+    "@actionflow/adapter-react-query"
+  ]
 }
