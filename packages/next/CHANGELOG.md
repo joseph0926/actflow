@@ -1,5 +1,14 @@
 # @actkit/next
 
+## 0.0.2
+
+### Patch Changes
+
+- patch: v0.0.2
+- Updated dependencies
+  - @actkit/server@0.0.2
+  - @actkit/core@0.0.2
+
 ## 0.0.1
 
 ### Patch Changes

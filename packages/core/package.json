@@ -1,6 +1,6 @@
 {
   "name": "@actkit/core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Strict query-key & tag factory for Next.js Server Actions (RSC).",
   "private": false,
   "repository": {
