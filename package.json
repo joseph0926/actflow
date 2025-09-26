@@ -1,5 +1,5 @@
 {
-  "name": "actkit",
+  "name": "actflow",
   "version": "0.0.1",
   "description": "First Variant Pipeline for Next.js Server Actions Based on RSC — Implementing Optimistic Updates, Immediacy/Duplicate Removal, Retries, and Type-Safe Cache Revalidation All at Once.",
   "private": true,
@@ -10,11 +10,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/joseph0926/actkit"
+    "url": "https://github.com/joseph0926/actflow"
   },
-  "homepage": "https://github.com/joseph0926/actkit#readme",
+  "homepage": "https://github.com/joseph0926/actflow#readme",
   "bugs": {
-    "url": "https://github.com/joseph0926/actkit/issues"
+    "url": "https://github.com/joseph0926/actflow/issues"
   },
   "type": "module",
   "scripts": {

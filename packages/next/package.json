@@ -1,24 +1,21 @@
 {
-  "name": "@actkit/next",
-  "version": "0.0.2",
+  "name": "@actflow/next",
+  "version": "0.1.0",
   "private": false,
   "type": "module",
   "sideEffects": false,
-  "description": "Facade for ActKit on Next.js: server-only defineAction and React hooks re-exports.",
+  "description": "Facade for actflow on Next.js: server-only defineAction and React hooks re-exports.",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "default": "./dist/index.js"
-    },
+    ".": "./dist/index.js",
     "./server": {
       "react-server": "./dist/server/index.js",
       "default": "./dist/server/server-only.js"
     },
-    "./react": {
-      "default": "./dist/react/index.js"
-    }
+    "./react": "./dist/react/index.js",
+    "./core": "./dist/core/index.js"
   },
   "typesVersions": {
     "*": {
@@ -27,6 +24,9 @@
       ],
       "react": [
         "dist/react/index.d.ts"
+      ],
+      "core": [
+        "dist/core/index.d.ts"
       ]
     }
   },
@@ -43,8 +43,8 @@
     "zod": "^4"
   },
   "dependencies": {
-    "@actkit/server": "workspace:*",
-    "@actkit/core": "workspace:*"
+    "@actflow/server": "workspace:*",
+    "@actflow/core": "workspace:*"
   },
   "devDependencies": {
     "vitest": "^3.2.4"

@@ -1,15 +1,15 @@
 {
-  "name": "@actkit/eslint-config",
+  "name": "@actflow/eslint-config",
   "version": "0.0.0",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/joseph0926/actkit",
+    "url": "https://github.com/joseph0926/actflow",
     "directory": "packages/eslint-config"
   },
-  "homepage": "https://github.com/joseph0926/actkit#readme",
+  "homepage": "https://github.com/joseph0926/actflow#readme",
   "bugs": {
-    "url": "https://github.com/joseph0926/actkit/issues"
+    "url": "https://github.com/joseph0926/actflow/issues"
   },
   "type": "module",
   "main": "index.js",

@@ -135,7 +135,7 @@ const config = [
             ],
             ['^react$', '^react-dom$', '^next(/.*)?$'],
             ['^@?\\w'],
-            ['^@actkit(/.*)?$', '^@tagforge(/.*)?$'],
+            ['^@actflow(/.*)?$', '^@tagforge(/.*)?$'],
             ['^@/'],
             ['^\\.\\.(?!/?$)', '^\\.\\./'],
             ['^\\./(?!/?$)', '^\\./'],
@@ -223,7 +223,7 @@ const config = [
         {
           patterns: [
             {
-              group: ['@actkit/react', '@actkit/server', '@actkit/adapter-react-query'],
+              group: ['@actflow/react', '@actflow/server', '@actflow/adapter-react-query'],
               message: 'core must not depend on higher layers.',
             },
           ],
@@ -239,8 +239,8 @@ const config = [
         {
           patterns: [
             {
-              group: ['@actkit/react', '@actkit/adapter-react-query'],
-              message: 'server can depend only on @actkit/core.',
+              group: ['@actflow/react', '@actflow/adapter-react-query'],
+              message: 'server can depend only on @actflow/core.',
             },
           ],
         },
@@ -253,7 +253,7 @@ const config = [
       'no-restricted-imports': [
         'error',
         {
-          patterns: [{ group: ['@actkit/server'], message: 'react must not depend on server.' }],
+          patterns: [{ group: ['@actflow/server'], message: 'react must not depend on server.' }],
         },
       ],
     },
@@ -266,7 +266,7 @@ const config = [
         {
           patterns: [
             {
-              group: ['@actkit/server'],
+              group: ['@actflow/server'],
               message: 'adapter-react-query must not depend on server.',
             },
           ],

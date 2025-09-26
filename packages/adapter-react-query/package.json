@@ -1,18 +1,18 @@
 {
-  "name": "@actkit/adapter-react-query",
-  "version": "0.0.2",
+  "name": "@actflow/adapter-react-query",
+  "version": "0.0.0",
   "description": "",
   "type": "module",
   "private": true,
   "sideEffects": false,
   "repository": {
     "type": "git",
-    "url": "https://github.com/joseph0926/actkit",
+    "url": "https://github.com/joseph0926/actflow",
     "directory": "packages/adapter-react-query"
   },
-  "homepage": "https://github.com/joseph0926/actkit#readme",
+  "homepage": "https://github.com/joseph0926/actflow#readme",
   "bugs": {
-    "url": "https://github.com/joseph0926/actkit/issues"
+    "url": "https://github.com/joseph0926/actflow/issues"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -34,11 +34,11 @@
   },
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
-    "@actkit/core": "workspace:*",
-    "@actkit/react": "workspace:*"
+    "@actflow/core": "workspace:*",
+    "@actflow/react": "workspace:*"
   },
   "devDependencies": {
-    "@actkit/eslint-config": "workspace:*",
+    "@actflow/eslint-config": "workspace:*",
     "vitest": "^3.2.4"
   },
   "peerDependencies": {

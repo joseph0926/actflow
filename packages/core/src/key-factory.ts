@@ -33,7 +33,7 @@ function toTagPart(a: KeyAtom): string {
  * @description tags: server-side invalidation strings (e.g., 'post:123')
  * @description keys: client-side cache keys (e.g., ['post', 123])
  * @example```ts
- * import { defineKeyFactory } from '@actkit/core';
+ * import { defineKeyFactory } from '@actflow/core';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },

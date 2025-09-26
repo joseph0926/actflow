@@ -1,4 +1,4 @@
-# actkit
+# actflow
 
 **Next.js Server Actions(RSC)** 환경에서 변이 흐름을 **예측 가능하게** 만드는 툴킷입니다.
 
@@ -8,30 +8,25 @@
 
 ---
 
-## v0.0.1에 포함된 것
+- **`@actflow/next`** — 앱을 위한 파사드
+  - `@actflow/next/server` 에서 `defineAction` 재-export (클라이언트에서 임포트 시 즉시 에러)
+  - `@actflow/next/core` 에서 `defineKeyFactory` 재-export(초기 스텁)
 
-- **`@actkit/server`** — 서버 전용 `defineAction(name, zodSchema, handler)`
+- **`@actflow/server`** — 서버 전용 `defineAction(name, zodSchema, handler)`
   - Zod 전용 강제(컴파일/런타임), 핸들러에는 `z.output<S>`, 호출자는 `z.input<S>`
-- **`@actkit/next`** — 앱을 위한 파사드
-  - `@actkit/next/server` 에서 `defineAction` 재-export (클라이언트에서 임포트 시 즉시 에러)
-  - `@actkit/next/react` 에서 클라이언트 훅 재-export(초기 스텁)
-- **`@actkit/core`** — **Strict 쿼리키 & 태그 팩토리**(키/태그를 한 스키마로 생성)
 
-> 레포 내 패키지: `@actkit/next`, `@actkit/server`, `@actkit/core`, `@actkit/react`, `@actkit/adapter-react-query`(선택).
+- **`@actflow/core`** — **Strict 쿼리키 & 태그 팩토리**(키/태그를 한 스키마로 생성)
+
+> 레포 내 패키지: `@actflow/next`, `@actflow/server`, `@actflow/core`, `@actflow/react`, `@actflow/adapter-react-query`(선택).
 
 ---
 
 ## 설치
 
 ```bash
-pnpm add @actkit/next zod
-# 또는 npm i @actkit/next zod
+pnpm add @actflow/next zod
+# 또는 npm i @actflow/next zod
 ```
-
-````
-
-> 라이브러리/도구 레벨에서 직접 쓰려면 `@actkit/server`/`@actkit/core`만 설치해도 되지만,
-> 앱에서는 **`@actkit/next` 파사드** 사용을 권장합니다.
 
 ---
 
@@ -43,7 +38,7 @@ pnpm add @actkit/next zod
 // app/actions/posts.ts
 'use server';
 
-import { defineAction } from '@actkit/next/server';
+import { defineAction } from '@actflow/next/server';
 import { z } from 'zod';
 import { createPost } from '@/server/db';
 
@@ -64,7 +59,7 @@ export const createPostAction = defineAction(
 
 ```ts
 // lib/keys.ts
-import { defineKeyFactory } from '@actkit/core';
+import { defineKeyFactory } from '@actflow/next/core';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },
@@ -95,7 +90,7 @@ qk.post({ id: 1 }); // ['post', 1]
   - 호출 인자: `z.input<S>`
   - 핸들러 `input`: `z.output<S>`
 
-### 키 설계 정책(`@actkit/core`)
+### 키 설계 정책(`@actflow/core`)
 
 - **원자만 허용**: `string | number | boolean`
 - **boolean 표준화**: 키에서는 `1/0`, 태그에서는 `"1"/"0"`
@@ -108,7 +103,7 @@ qk.post({ id: 1 }); // ['post', 1]
 
 - Node ≥ **22.19**
 - TypeScript ≥ **5.9**
-- Next.js ≥ **15** (파사드 `@actkit/next` 사용 시)
+- Next.js ≥ **15** (파사드 `@actflow/next` 사용 시)
 - Zod ≥ **4** (peer)
 
 ---
@@ -125,4 +120,7 @@ qk.post({ id: 1 }); // ['post', 1]
 ## 라이선스
 
 MIT
-````
+
+```
+
+```

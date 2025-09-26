@@ -1,1 +1,1 @@
-export { defineAction } from '@actkit/server';
+export { defineAction } from '@actflow/server';

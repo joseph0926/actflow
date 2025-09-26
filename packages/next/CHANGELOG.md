@@ -1,18 +1,13 @@
-# @actkit/next
+# @actflow/next
 
-## 0.0.2
+## 0.1.0
 
-### Patch Changes
+### Minor Changes
 
-- patch: v0.0.2
-- Updated dependencies
-  - @actkit/server@0.0.2
-  - @actkit/core@0.0.2
-
-## 0.0.1
+- release: v0.1.0
 
 ### Patch Changes
 
-- Introduce server-only defineAction(name, zodSchema, handler) with Zod-only typing & runtime guards; add @actkit/next facade (/server, /react) and basic Vitest coverage.
 - Updated dependencies
-  - @actkit/server@0.0.1
+  - @actflow/server@0.1.0
+  - @actflow/core@0.1.0

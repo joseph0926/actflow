@@ -1,1 +1,1 @@
-export { defineKeyFactory } from '@actkit/core';
+export { defineKeyFactory } from '@actflow/core';

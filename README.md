@@ -1,4 +1,4 @@
-# actkit
+# actflow
 
 > 한국어 버전: [`docs/README.ko.md`](docs/README.ko.md)
 
@@ -10,30 +10,26 @@ Make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
 
 ---
 
-## What’s in v0.0.1
+- **`@actflow/next`** — Facade for apps
+  - `@actflow/next/server` re-exports `defineAction` (client import throws)
+  - `@actflow/next/core` re-exports `defineKeyFactory`
 
-- **`@actkit/server`** — `defineAction(name, zodSchema, handler)` (server-only)
+- **`@actflow/server`** — `defineAction(name, zodSchema, handler)` (server-only)
   - Zod-only (typed at compile time, checked at runtime)
   - Handler receives `z.output<S>`, caller passes `z.input<S>`
 
-- **`@actkit/next`** — Facade for apps
-  - `@actkit/next/server` re-exports `defineAction` (client import throws)
-  - `@actkit/next/react` re-exports client hooks (placeholder for now)
+- **`@actflow/core`** — strict query-key & tag factory (keys/tags from one schema)
 
-- **`@actkit/core`** — strict query-key & tag factory (keys/tags from one schema)
-
-> Packages present in repo: `@actkit/next`, `@actkit/server`, `@actkit/core`, `@actkit/react`, `@actkit/adapter-react-query` (adapter optional).
+> Packages present in repo: `@actflow/next`, `@actflow/server`, `@actflow/core`, `@actflow/react`, `@actflow/adapter-react-query` (adapter optional).
 
 ---
 
 ## Install
 
 ```bash
-pnpm add @actkit/next zod
-# or: npm i @actkit/next zod
+pnpm add @actflow/next zod
+# or: npm i @actflow/next zod
 ```
-
-> Library authors can also install `@actkit/server` / `@actkit/core` directly, but apps should prefer the `@actkit/next` facade.
 
 ---
 
@@ -45,7 +41,7 @@ pnpm add @actkit/next zod
 // app/actions/posts.ts
 'use server';
 
-import { defineAction } from '@actkit/next/server';
+import { defineAction } from '@actflow/next/server';
 import { z } from 'zod';
 import { createPost } from '@/server/db';
 
@@ -66,7 +62,7 @@ export const createPostAction = defineAction(
 
 ```ts
 // lib/keys.ts
-import { defineKeyFactory } from '@actkit/core';
+import { defineKeyFactory } from '@actflow/next/core';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },
@@ -103,7 +99,7 @@ Use `t.*()` with RSC caching/tagging, and `qk.*()` with client caches (e.g., Rea
 
 - Node ≥ **22.19**
 - TypeScript ≥ **5.9**
-- Next.js ≥ **15** (for facade `@actkit/next`)
+- Next.js ≥ **15** (for facade `@actflow/next`)
 - Zod ≥ **4** (peer dep)
 
 ---
