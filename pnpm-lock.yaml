@@ -99,23 +99,22 @@ importers:
       react:
         specifier: ^18.2.0 || ^19.1.1
         version: 19.1.1
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.4(@types/node@24.5.2)(jsdom@27.0.0(postcss@8.5.6))(yaml@2.8.1)
     devDependencies:
       '@actionflow/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.5.2)(jsdom@27.0.0(postcss@8.5.6))(yaml@2.8.1)
 
   packages/core:
-    dependencies:
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.4(@types/node@24.5.2)(jsdom@27.0.0(postcss@8.5.6))(yaml@2.8.1)
     devDependencies:
       '@actionflow/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.5.2)(jsdom@27.0.0(postcss@8.5.6))(yaml@2.8.1)
 
   packages/eslint-config:
     dependencies:
@@ -161,26 +160,26 @@ importers:
       react-dom:
         specifier: ^18.2.0 || ^19.1.1
         version: 19.1.1(react@19.1.1)
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.4(@types/node@24.5.2)(jsdom@27.0.0(postcss@8.5.6))(yaml@2.8.1)
     devDependencies:
       '@actionflow/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.5.2)(jsdom@27.0.0(postcss@8.5.6))(yaml@2.8.1)
 
   packages/server:
     dependencies:
       '@actionflow/core':
         specifier: workspace:*
         version: link:../core
-      vitest:
-        specifier: ^3.2.4
-        version: 3.2.4(@types/node@24.5.2)(jsdom@27.0.0(postcss@8.5.6))(yaml@2.8.1)
     devDependencies:
       '@actionflow/eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.4(@types/node@24.5.2)(jsdom@27.0.0(postcss@8.5.6))(yaml@2.8.1)
 
 packages:
 
