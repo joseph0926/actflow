@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "types": ["node", "vitest/globals"],
+    "verbatimModuleSyntax": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "stripInternal": true,
+    "outDir": "dist",
+    "skipLibCheck": true,
+    "strictNullChecks": true
+  },
+  "include": ["src", "*.config.ts"],
+  "exclude": ["dist", "node_modules"]
+}

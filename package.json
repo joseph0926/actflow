@@ -1,6 +1,6 @@
 {
   "name": "actkit",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "First Variant Pipeline for Next.js Server Actions Based on RSC — Implementing Optimistic Updates, Immediacy/Duplicate Removal, Retries, and Type-Safe Cache Revalidation All at Once.",
   "private": true,
   "main": "index.js",

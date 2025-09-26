@@ -1,0 +1,52 @@
+{
+  "name": "@actkit/next",
+  "version": "0.0.1",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "description": "Facade for ActKit on Next.js: server-only defineAction and React hooks re-exports.",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "react-server": "./dist/server/index.js",
+      "default": "./dist/server/server-only.js"
+    },
+    "./react": {
+      "default": "./dist/react/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "server": [
+        "dist/server/index.d.ts"
+      ],
+      "react": [
+        "dist/react/index.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit"
+  },
+  "peerDependencies": {
+    "next": ">=15",
+    "react": ">=19",
+    "zod": "^4"
+  },
+  "dependencies": {
+    "@actkit/server": "workspace:*",
+    "@actkit/core": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}

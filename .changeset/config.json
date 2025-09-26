@@ -7,5 +7,5 @@
   "updateInternalDependencies": "patch",
   "linked": [],
   "fixed": [],
-  "ignore": ["@actkit/server", "@actkit/react", "@actkit/adapter-react-query"]
+  "ignore": ["@actkit/react", "@actkit/adapter-react-query"]
 }
