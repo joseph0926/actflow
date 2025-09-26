@@ -8,6 +8,14 @@
     "apps/*",
     "packages/*"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joseph0926/actionflow"
+  },
+  "homepage": "https://github.com/joseph0926/actionflow#readme",
+  "bugs": {
+    "url": "https://github.com/joseph0926/actionflow/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "turbo run dev --filter=apps/*",

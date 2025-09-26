@@ -5,6 +5,15 @@
   "type": "module",
   "private": true,
   "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joseph0926/actionflow",
+    "directory": "packages/adapter-react-query"
+  },
+  "homepage": "https://github.com/joseph0926/actionflow#readme",
+  "bugs": {
+    "url": "https://github.com/joseph0926/actionflow/issues"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

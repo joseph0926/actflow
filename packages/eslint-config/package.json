@@ -2,6 +2,15 @@
   "name": "actionflow-eslint-config",
   "version": "0.0.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joseph0926/actionflow",
+    "directory": "packages/eslint-config"
+  },
+  "homepage": "https://github.com/joseph0926/actionflow#readme",
+  "bugs": {
+    "url": "https://github.com/joseph0926/actionflow/issues"
+  },
   "type": "module",
   "main": "index.js",
   "exports": {
