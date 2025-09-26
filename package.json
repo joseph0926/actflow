@@ -1,5 +1,5 @@
 {
-  "name": "actionflow",
+  "name": "actkit",
   "version": "0.0.0",
   "description": "First Variant Pipeline for Next.js Server Actions Based on RSC — Implementing Optimistic Updates, Immediacy/Duplicate Removal, Retries, and Type-Safe Cache Revalidation All at Once.",
   "private": true,
@@ -10,11 +10,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/joseph0926/actionflow"
+    "url": "https://github.com/joseph0926/actkit"
   },
-  "homepage": "https://github.com/joseph0926/actionflow#readme",
+  "homepage": "https://github.com/joseph0926/actkit#readme",
   "bugs": {
-    "url": "https://github.com/joseph0926/actionflow/issues"
+    "url": "https://github.com/joseph0926/actkit/issues"
   },
   "type": "module",
   "scripts": {
@@ -29,7 +29,7 @@
     "format:check": "prettier . --check",
     "test": "turbo run test",
     "test:watch": "turbo run test -- --watch",
-    "clean": "rimraf -g \"**/dist\" \"**/build\" \"**/.tsbuildinfo\" \"**/tsconfig.tsbuildinfo\" \".turbo\" \"**/node_modules\" && pnpm store prune",
+    "clean": "rimraf -g \"**/.turbo\" \"**/dist\" \"**/build\" \"**/.tsbuildinfo\" \"**/tsconfig.tsbuildinfo\" \".turbo\" \"**/node_modules\" && pnpm store prune",
     "changeset": "changeset",
     "release:version": "changeset version && pnpm -w install --no-frozen-lockfile",
     "release:publish": "pnpm -w build && changeset publish",

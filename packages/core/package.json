@@ -1,16 +1,16 @@
 {
-  "name": "actionflow-core",
+  "name": "@actkit/core",
   "version": "0.0.1",
   "description": "Strict query-key & tag factory for Next.js Server Actions (RSC).",
   "private": false,
   "repository": {
     "type": "git",
-    "url": "https://github.com/joseph0926/actionflow",
+    "url": "https://github.com/joseph0926/actkit",
     "directory": "packages/core"
   },
-  "homepage": "https://github.com/joseph0926/actionflow#readme",
+  "homepage": "https://github.com/joseph0926/actkit#readme",
   "bugs": {
-    "url": "https://github.com/joseph0926/actionflow/issues"
+    "url": "https://github.com/joseph0926/actkit/issues"
   },
   "type": "module",
   "sideEffects": false,
@@ -40,7 +40,7 @@
   },
   "packageManager": "pnpm@10.17.1",
   "devDependencies": {
-    "actionflow-eslint-config": "workspace:*",
+    "@actkit/eslint-config": "workspace:*",
     "vitest": "^3.2.4"
   }
 }

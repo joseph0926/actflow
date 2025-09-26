@@ -1,10 +1,10 @@
-# ActionFlow
+# actkit
 
 > 한국어 문서는 [`docs/README.ko.md`](docs/README.ko.md) 를 참고하세요.
 
 We aim to make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
 
-> In **v0.0.1**, we ship **`actionflow-core` – a strict query-key & tag factory**.
+> In **v0.0.1**, we ship **`@actkit/core` – a strict query-key & tag factory**.
 
 - What we improve
   - A **standard rail** for mutations: _optimistic → server → cache invalidation → reconcile/rollback → retry/dedupe_
@@ -15,20 +15,20 @@ We aim to make mutation flows **predictable** in **Next.js Server Actions (RSC)*
 
 ## Packages (current)
 
-- `actionflow-core` — **Strict query-key & tag factory**
+- `@actkit/core` — **Strict query-key & tag factory**
   - Key shape: `readonly [namespace: string, ...atoms]`
   - **Atoms only**: `string | number | boolean` (no objects/arrays)
   - `boolean` normalized to `1/0` for keys and `"1"/"0"` for tags
 
-> Upcoming: `actionflow-server`, `actionflow-react`, `actionflow-adapter-react-query`.
+> Upcoming: `@actkit/server`, `@actkit/react`, `@actkit/adapter-react-query`.
 
 ---
 
 ## Install
 
 ```bash
-pnpm add actionflow-core
-# or npm i actionflow-core
+pnpm add @actkit/core
+# or npm i @actkit/core
 ```
 
 ---
@@ -39,7 +39,7 @@ pnpm add actionflow-core
 
 ```ts
 // lib/keys.ts
-import { defineKeyFactory } from 'actionflow-core';
+import { defineKeyFactory } from '@actkit/core';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },

@@ -1,4 +1,4 @@
-# actionflow-core
+# @actkit/core
 
 Strict **query-key & tag factory** for **Next.js Server Actions (RSC)**.
 Generate **client query keys** (e.g., React Query) and **server cache tags** (`revalidateTag`) **from a single schema** to avoid drift and typos.
@@ -8,16 +8,16 @@ Generate **client query keys** (e.g., React Query) and **server cache tags** (`r
 - **Fixed param order**: follows your schema tuple order
 - **ESM + types**, tiny footprint
 
-> This package is part of **ActionFlow** (mutation “rail”: optimistic → server → cache invalidation → reconcile/rollback → retry/dedupe).
-> In v0.0.1, only `actionflow-core` is published.
+> This package is part of **actkit** (mutation “rail”: optimistic → server → cache invalidation → reconcile/rollback → retry/dedupe).
+> In v0.0.1, only `@actkit/core` is published.
 
 ---
 
 ## Install
 
 ```bash
-pnpm add actionflow-core
-# or npm i actionflow-core
+pnpm add @actkit/core
+# or npm i @actkit/core
 ```
 
 ## Quick Start
@@ -26,7 +26,7 @@ pnpm add actionflow-core
 
 ```ts
 // lib/keys.ts
-import { defineKeyFactory } from 'actionflow-core';
+import { defineKeyFactory } from '@actkit/core';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },
@@ -129,19 +129,19 @@ MIT
 
 ---
 
-# actionflow-core (Ko)
+# @actkit/core (Ko)
 
-**`actionflow-core`**는 **Next.js Server Actions(RSC)** 환경에서 **클라이언트 쿼리키**와 **서버 캐시 태그**를 **한 스키마로 동시에 생성**하는 작은 유틸입니다.
+**`@actkit/core`**는 **Next.js Server Actions(RSC)** 환경에서 **클라이언트 쿼리키**와 **서버 캐시 태그**를 **한 스키마로 동시에 생성**하는 작은 유틸입니다.
 
 - **원자만 허용**: `string | number | boolean` (객체/배열 X)
 - **불리언 표준화**: 키 `1/0`, 태그 `"1"/"0"`
 - **순서 고정**: `params`에 적은 순서를 그대로 사용
-- **설치**: `pnpm add actionflow-core`
+- **설치**: `pnpm add @actkit/core`
 
 빠른 예시:
 
 ```ts
-import { defineKeyFactory } from 'actionflow-core';
+import { defineKeyFactory } from '@actkit/core';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },
