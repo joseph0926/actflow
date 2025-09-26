@@ -1,5 +1,5 @@
 {
-  "name": "@actionflow/adapter-react-query",
+  "name": "actionflow-adapter-react-query",
   "version": "0.0.2",
   "description": "",
   "type": "module",
@@ -25,11 +25,11 @@
   },
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
-    "@actionflow/core": "workspace:*",
-    "@actionflow/react": "workspace:*"
+    "actionflow-core": "workspace:*",
+    "actionflow-react": "workspace:*"
   },
   "devDependencies": {
-    "@actionflow/eslint-config": "workspace:*",
+    "actionflow-eslint-config": "workspace:*",
     "vitest": "^3.2.4"
   },
   "peerDependencies": {

@@ -1,5 +1,5 @@
 {
-  "name": "@actionflow/eslint-config",
+  "name": "actionflow-eslint-config",
   "version": "0.0.0",
   "private": true,
   "type": "module",
