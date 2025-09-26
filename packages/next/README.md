@@ -8,15 +8,13 @@ Make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
 
 ---
 
-## What’s in v0.0.1
+- **`@actflow/next`** — Facade for apps
+  - `@actflow/next/server` re-exports `defineAction` (client import throws)
+  - `@actflow/next/core` re-exports `defineKeyFactory`
 
 - **`@actflow/server`** — `defineAction(name, zodSchema, handler)` (server-only)
   - Zod-only (typed at compile time, checked at runtime)
   - Handler receives `z.output<S>`, caller passes `z.input<S>`
-
-- **`@actflow/next`** — Facade for apps
-  - `@actflow/next/server` re-exports `defineAction` (client import throws)
-  - `@actflow/next/react` re-exports client hooks (placeholder for now)
 
 - **`@actflow/core`** — strict query-key & tag factory (keys/tags from one schema)
 
@@ -30,8 +28,6 @@ Make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
 pnpm add @actflow/next zod
 # or: npm i @actflow/next zod
 ```
-
-> Library authors can also install `@actflow/server` / `@actflow/core` directly, but apps should prefer the `@actflow/next` facade.
 
 ---
 
@@ -64,7 +60,7 @@ export const createPostAction = defineAction(
 
 ```ts
 // lib/keys.ts
-import { defineKeyFactory } from '@actflow/core';
+import { defineKeyFactory } from '@actflow/next/core';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },

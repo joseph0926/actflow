@@ -12,29 +12,72 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        node-version: [22]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.17.1 }
+      - uses: actions/setup-node@v4
         with:
-          version: 10.17.1
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
       - name: Install deps
         run: pnpm install --frozen-lockfile
       - name: Version & Publish via Changesets
+        id: changesets
         uses: changesets/action@v1
         with:
           version: pnpm -w release:version
           publish: pnpm -w release:publish
+          createGithubReleases: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+      - name: Create combined GitHub Release
+        if: steps.changesets.outputs.published == 'true'
+        uses: actions/github-script@v7
+        env:
+          PUBLISHED: ${{ steps.changesets.outputs.publishedPackages }}
+        with:
+          script: |
+            const published = JSON.parse(process.env.PUBLISHED || "[]");
+            const facade = published.find(p => p.name === "@actkit/next" || p.name === "@actflow/next");
+            const tag = facade
+              ? `${facade.name.replace('@','').replace('/','-')}-v${facade.version}`
+              : `actkit-release-${new Date().toISOString().slice(0,10)}`;
+            const title = facade ? `${facade.name} ${facade.version}` : 'actkit release';
+
+            const lines = ["## Packages published"];
+            for (const { name, version } of published) {
+              lines.push(`- **${name}** \`${version}\` ([npm](https://www.npmjs.com/package/${encodeURIComponent(name)}/v/${version}))`);
+            }
+            const body = lines.join("\n");
+
+            const { owner, repo } = context.repo;
+
+            let refExists = false;
+            try {
+              await github.rest.git.getRef({ owner, repo, ref: `tags/${tag}` });
+              refExists = true;
+            } catch (e) {
+              // noop
+            }
+            if (!refExists) {
+              await github.rest.git.createRef({
+                owner, repo,
+                ref: `refs/tags/${tag}`,
+                sha: context.sha,
+              });
+            }
+
+            await github.rest.repos.createRelease({
+              owner, repo,
+              tag_name: tag,
+              name: title,
+              body,
+              draft: false,
+              prerelease: false,
+            });
+            core.info(`Created combined release ${title}`);

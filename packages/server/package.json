@@ -1,9 +1,9 @@
 {
   "name": "@actflow/server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "type": "module",
-  "private": true,
+  "private": false,
   "sideEffects": false,
   "repository": {
     "type": "git",
@@ -46,6 +46,7 @@
     "zod": "^4.1"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   }
 }
