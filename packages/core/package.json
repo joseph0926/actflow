@@ -2,7 +2,7 @@
   "name": "@actflow/core",
   "version": "0.1.0",
   "description": "Strict query-key & tag factory for Next.js Server Actions (RSC).",
-  "private": false,
+  "private": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/joseph0926/actflow",
