@@ -1,7 +1,5 @@
 # actkit
 
-> 한국어 버전: [`docs/README.ko.md`](docs/README.ko.md)
-
 Make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
 
 - Standard rail: _optimistic → server → cache invalidation → reconcile/rollback → retry/dedupe_

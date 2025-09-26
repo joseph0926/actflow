@@ -1,39 +1,66 @@
 # actkit
 
-**Next.js Server Actions(RSC)** 환경에서 변이 흐름을 **예측 가능하게** 만드는 툴킷을 지향합니다.
+**Next.js Server Actions(RSC)** 환경에서 변이 흐름을 **예측 가능하게** 만드는 툴킷입니다.
 
-> 현재 v0.0.1은 **쿼리키 & 태그 팩토리(`@actkit/core`)**만 제공합니다.
-
-- 개선하려는 것
-  - “낙관 적용 → 서버 실행 → 캐시 무효화 → 정합화/롤백 → 재시도/중복방지”의 **표준 레일** 확립
-  - **서버 태그(revalidateTag)**와 **클라이언트 쿼리키(React Query 등)**를 **한 스키마에서 동시 생성**해 오타·불일치 제거
-  - (차기) 재시도 / 아웃박스 / 멀티 탭 동기화 / DevTools
+- 표준 레일: _낙관 적용 → 서버 실행 → 캐시 무효화 → 정합화/롤백 → 재시도/중복 방지_
+- **한 스키마**로 서버 태그(`revalidateTag`)와 클라이언트 쿼리키(예: React Query)를 동시 생성
+- (다음 버전 예정) 재시도/백오프, 아웃박스(IndexedDB), 멀티 탭 동기화(BroadcastChannel), DevTools
 
 ---
 
-## Packages (현재)
+## v0.0.1에 포함된 것
 
-- `@actkit/core` — **Strict 쿼리키 & 태그 팩토리**
-  - 키 형태: `readonly [namespace: string, ...atoms]`
-  - **원자만 허용**: `string | number | boolean` (객체/배열 금지)
-  - `boolean`은 키에서 `1/0`, 태그에서 `"1"/"0"`으로 표준화
+- **`@actkit/server`** — 서버 전용 `defineAction(name, zodSchema, handler)`
+  - Zod 전용 강제(컴파일/런타임), 핸들러에는 `z.output<S>`, 호출자는 `z.input<S>`
+- **`@actkit/next`** — 앱을 위한 파사드
+  - `@actkit/next/server` 에서 `defineAction` 재-export (클라이언트에서 임포트 시 즉시 에러)
+  - `@actkit/next/react` 에서 클라이언트 훅 재-export(초기 스텁)
+- **`@actkit/core`** — **Strict 쿼리키 & 태그 팩토리**(키/태그를 한 스키마로 생성)
 
-> 앞으로 `@actkit/server`, `@actkit/react`, `@actkit/adapter-react-query` 제공 예정.
+> 레포 내 패키지: `@actkit/next`, `@actkit/server`, `@actkit/core`, `@actkit/react`, `@actkit/adapter-react-query`(선택).
 
 ---
 
 ## 설치
 
 ```bash
-pnpm add @actkit/core
-# or npm i @actkit/core
+pnpm add @actkit/next zod
+# 또는 npm i @actkit/next zod
 ```
+
+````
+
+> 라이브러리/도구 레벨에서 직접 쓰려면 `@actkit/server`/`@actkit/core`만 설치해도 되지만,
+> 앱에서는 **`@actkit/next` 파사드** 사용을 권장합니다.
 
 ---
 
 ## 빠른 시작
 
-### 1) 키/태그 스키마 정의
+### 1) 서버 액션(Zod 전용)
+
+```ts
+// app/actions/posts.ts
+'use server';
+
+import { defineAction } from '@actkit/next/server';
+import { z } from 'zod';
+import { createPost } from '@/server/db';
+
+export const createPostAction = defineAction(
+  'post.create',
+  z.object({ title: z.string().min(1), body: z.string().min(1) }),
+  async ({ input }) => {
+    const row = await createPost(input);
+    // 캐시 무효화 옵션은 차기 버전에서 제공 예정
+    return row;
+  },
+);
+```
+
+- **왜 `name`?** 로깅/트레이싱/멱등 네임스페이스/DevTools용 **안정 식별자**입니다.
+
+### 2) (선택) 쿼리키 & 태그를 한 스키마로
 
 ```ts
 // lib/keys.ts
@@ -44,68 +71,58 @@ export const { tags: t, keys: qk } = defineKeyFactory({
   post: { key: 'post', params: ['id'] as const },
 } as const);
 
-// 사용 예
+// 예시
 t.posts(); // 'posts'
 t.post({ id: 1 }); // 'post:1'
 qk.posts(); // ['posts']
 qk.post({ id: 1 }); // ['post', 1]
 ```
 
-### 2) RSC 서버 데이터에 태그 부여
-
-```ts
-// server/queries.ts
-import { unstable_cache as cache } from 'next/cache';
-import { t } from '@/lib/keys';
-import { listPosts } from '@/server/db';
-
-export const getPosts = cache(() => listPosts(), ['posts.list'], {
-  tags: [t.posts()],
-});
-```
-
-### 3) Server Action에서 무효화
-
-```ts
-// app/actions/posts.ts
-'use server';
-
-import { revalidateTag } from 'next/cache';
-import { t } from '@/lib/keys';
-import { createPost } from '@/server/db';
-
-export async function createPostAction(input: { title: string; body: string }) {
-  const row = await createPost(input);
-  revalidateTag(t.posts());
-  return row;
-}
-```
-
-### 4) (선택) React Query에서 동일 쿼리키 사용
-
-```ts
-queryClient.invalidateQueries({ queryKey: qk.posts() });
-useQuery({ queryKey: qk.post({ id }), queryFn: fetchPost });
-```
+- RSC 캐시/태깅에는 `t.*()`, 클라이언트 캐시(React Query 등)에는 `qk.*()`를 사용하세요.
 
 ---
 
-## 정책 (키 설계)
+## API 스냅샷
 
-- **Strict 원자**: `string | number | boolean`만 허용
-- **불리언**: 키에서는 1/0, 태그에서는 "1"/"0"
-- **순서 고정**: `params` 정의 순서를 그대로 사용
-- **부분 무효화**: 리스트/패밀리 키(`['posts']`)로 범위 무효화
+### `defineAction(name, zodSchema, handler)`
+
+- **서버 전용**(클라이언트에서 임포트 시 즉시 에러).
+- Zod **필수**:
+  - 컴파일 타임: `S extends z.ZodType`
+  - 런타임: `parse/safeParse` 존재 확인(덕 타이핑)
+
+- 타입 흐름:
+  - 호출 인자: `z.input<S>`
+  - 핸들러 `input`: `z.output<S>`
+
+### 키 설계 정책(`@actkit/core`)
+
+- **원자만 허용**: `string | number | boolean`
+- **boolean 표준화**: 키에서는 `1/0`, 태그에서는 `"1"/"0"`
+- **순서 고정**: `params` 정의 순서 준수
+- **패밀리 무효화**: 리스트/패밀리 키(`['posts']`)로 범위 무효화
 
 ---
 
 ## 요구 사항
 
-- Node ≥ 22.19
-- TypeScript ≥ 5.9
+- Node ≥ **22.19**
+- TypeScript ≥ **5.9**
+- Next.js ≥ **15** (파사드 `@actkit/next` 사용 시)
+- Zod ≥ **4** (peer)
+
+---
+
+## 로드맵
+
+- `defineAction` 옵션: **멱등성**, **태그/경로 무효화**, **재시도/백오프**
+- 아웃박스(IndexedDB), 멀티 탭 동기화(BroadcastChannel)
+- DevTools 타임라인
+- React Query 어댑터 고도화
 
 ---
 
 ## 라이선스
 
 MIT
+````
