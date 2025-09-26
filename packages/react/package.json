@@ -1,5 +1,5 @@
 {
-  "name": "actionflow-react",
+  "name": "@actkit/react",
   "version": "0.0.2",
   "description": "",
   "type": "module",
@@ -7,12 +7,12 @@
   "sideEffects": false,
   "repository": {
     "type": "git",
-    "url": "https://github.com/joseph0926/actionflow",
+    "url": "https://github.com/joseph0926/actkit",
     "directory": "packages/react"
   },
-  "homepage": "https://github.com/joseph0926/actionflow#readme",
+  "homepage": "https://github.com/joseph0926/actkit#readme",
   "bugs": {
-    "url": "https://github.com/joseph0926/actionflow/issues"
+    "url": "https://github.com/joseph0926/actkit/issues"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -34,10 +34,10 @@
   },
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
-    "actionflow-core": "workspace:*"
+    "@actkit/core": "workspace:*"
   },
   "devDependencies": {
-    "actionflow-eslint-config": "workspace:*",
+    "@actkit/eslint-config": "workspace:*",
     "vitest": "^3.2.4"
   },
   "peerDependencies": {

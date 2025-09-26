@@ -1,8 +1,8 @@
-# ActionFlow
+# actkit
 
 **Next.js Server Actions(RSC)** 환경에서 변이 흐름을 **예측 가능하게** 만드는 툴킷을 지향합니다.
 
-> 현재 v0.0.1은 **쿼리키 & 태그 팩토리(`actionflow-core`)**만 제공합니다.
+> 현재 v0.0.1은 **쿼리키 & 태그 팩토리(`@actkit/core`)**만 제공합니다.
 
 - 개선하려는 것
   - “낙관 적용 → 서버 실행 → 캐시 무효화 → 정합화/롤백 → 재시도/중복방지”의 **표준 레일** 확립
@@ -13,20 +13,20 @@
 
 ## Packages (현재)
 
-- `actionflow-core` — **Strict 쿼리키 & 태그 팩토리**
+- `@actkit/core` — **Strict 쿼리키 & 태그 팩토리**
   - 키 형태: `readonly [namespace: string, ...atoms]`
   - **원자만 허용**: `string | number | boolean` (객체/배열 금지)
   - `boolean`은 키에서 `1/0`, 태그에서 `"1"/"0"`으로 표준화
 
-> 앞으로 `actionflow-server`, `actionflow-react`, `actionflow-adapter-react-query` 제공 예정.
+> 앞으로 `@actkit/server`, `@actkit/react`, `@actkit/adapter-react-query` 제공 예정.
 
 ---
 
 ## 설치
 
 ```bash
-pnpm add actionflow-core
-# or npm i actionflow-core
+pnpm add @actkit/core
+# or npm i @actkit/core
 ```
 
 ---
@@ -37,7 +37,7 @@ pnpm add actionflow-core
 
 ```ts
 // lib/keys.ts
-import { defineKeyFactory } from 'actionflow-core';
+import { defineKeyFactory } from '@actkit/core';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },
