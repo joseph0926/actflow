@@ -1,6 +1,6 @@
 {
   "name": "actionflow",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "First Variant Pipeline for Next.js Server Actions Based on RSC — Implementing Optimistic Updates, Immediacy/Duplicate Removal, Retries, and Type-Safe Cache Revalidation All at Once.",
   "private": true,
   "main": "index.js",
@@ -21,7 +21,7 @@
     "format:check": "prettier . --check",
     "test": "turbo run test",
     "test:watch": "turbo run test -- --watch",
-    "clean": "rimraf packages/**/dist packages/**/tsconfig.tsbuildinfo",
+    "clean": "rimraf -g \"**/dist\" \"**/build\" \"**/.tsbuildinfo\" \"**/tsconfig.tsbuildinfo\" \".turbo\" \"**/node_modules\" && pnpm store prune",
     "changeset": "changeset",
     "release:version": "changeset version && pnpm -w install --no-frozen-lockfile",
     "release:publish": "pnpm -w build && changeset publish",

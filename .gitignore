@@ -4,6 +4,7 @@ node_modules
 # turbo
 .turbo
 tsconfig.tsbuildinfo
+.tsbuildinfo
 
 # build
 dist
@@ -26,3 +27,6 @@ pnpm-debug.log*
 .vscode
 .idea
 .DS_Store
+
+# .env
+.env

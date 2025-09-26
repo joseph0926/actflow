@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   release:
@@ -25,11 +26,15 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
       - name: Install deps
         run: pnpm install --frozen-lockfile
-      - name: Create/Update Version PR
+      - name: Version & Publish via Changesets
         uses: changesets/action@v1
         with:
           version: pnpm -w release:version
+          publish: pnpm -w release:publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

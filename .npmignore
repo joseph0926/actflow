@@ -1,0 +1,5 @@
+dist/**/__tests__/**
+dist/**/?(*.)+(test|spec).*
+dist/vitest.config.*
+dist/tsconfig.tsbuildinfo
+*.map

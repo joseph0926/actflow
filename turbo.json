@@ -4,11 +4,15 @@
     "format:check": { "cache": true, "outputs": [] },
     "lint": { "cache": true, "outputs": [] },
     "typecheck": { "cache": true, "outputs": [] },
-    "test": { "cache": true, "outputs": [] },
+    "test": {
+      "cache": true,
+      "outputs": [],
+      "inputs": ["src/**", "vitest.config.*"]
+    },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "tsconfig.tsbuildinfo"],
-      "inputs": ["src/**", "package.json", "tsconfig.json"]
+      "outputs": ["dist/**", ".tsbuildinfo", "tsconfig.tsbuildinfo"],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.build.json"]
     },
     "clean": { "cache": false }
   }
