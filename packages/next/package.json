@@ -1,6 +1,6 @@
 {
   "name": "@actflow/next",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "type": "module",
   "sideEffects": false,
@@ -50,7 +50,6 @@
     "vitest": "^3.2.4"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   }
 }
