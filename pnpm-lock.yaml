@@ -90,17 +90,17 @@ importers:
 
   packages/adapter-react-query:
     dependencies:
-      '@actionflow/core':
+      'actionflow-core':
         specifier: workspace:*
         version: link:../core
-      '@actionflow/react':
+      'actionflow-react':
         specifier: workspace:*
         version: link:../react
       react:
         specifier: ^18.2.0 || ^19.1.1
         version: 19.1.1
     devDependencies:
-      '@actionflow/eslint-config':
+      'actionflow-eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
       vitest:
@@ -109,7 +109,7 @@ importers:
 
   packages/core:
     devDependencies:
-      '@actionflow/eslint-config':
+      'actionflow-eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
       vitest:
@@ -151,7 +151,7 @@ importers:
 
   packages/react:
     dependencies:
-      '@actionflow/core':
+      'actionflow-core':
         specifier: workspace:*
         version: link:../core
       react:
@@ -161,7 +161,7 @@ importers:
         specifier: ^18.2.0 || ^19.1.1
         version: 19.1.1(react@19.1.1)
     devDependencies:
-      '@actionflow/eslint-config':
+      'actionflow-eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
       vitest:
@@ -170,11 +170,11 @@ importers:
 
   packages/server:
     dependencies:
-      '@actionflow/core':
+      'actionflow-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
-      '@actionflow/eslint-config':
+      'actionflow-eslint-config':
         specifier: workspace:*
         version: link:../eslint-config
       vitest:

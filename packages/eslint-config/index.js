@@ -223,7 +223,7 @@ const config = [
         {
           patterns: [
             {
-              group: ['@actionflow/react', '@actionflow/server', '@actionflow/adapter-react-query'],
+              group: ['actionflow-react', 'actionflow-server', 'actionflow-adapter-react-query'],
               message: 'core must not depend on higher layers.',
             },
           ],
@@ -239,8 +239,8 @@ const config = [
         {
           patterns: [
             {
-              group: ['@actionflow/react', '@actionflow/adapter-react-query'],
-              message: 'server can depend only on @actionflow/core.',
+              group: ['actionflow-react', 'actionflow-adapter-react-query'],
+              message: 'server can depend only on actionflow-core.',
             },
           ],
         },
@@ -253,9 +253,7 @@ const config = [
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            { group: ['@actionflow/server'], message: 'react must not depend on server.' },
-          ],
+          patterns: [{ group: ['actionflow-server'], message: 'react must not depend on server.' }],
         },
       ],
     },
@@ -268,7 +266,7 @@ const config = [
         {
           patterns: [
             {
-              group: ['@actionflow/server'],
+              group: ['actionflow-server'],
               message: 'adapter-react-query must not depend on server.',
             },
           ],

@@ -1,5 +1,5 @@
 {
-  "name": "@actionflow/core",
+  "name": "actionflow-core",
   "version": "0.0.1",
   "description": "Strict query-key & tag factory for Next.js Server Actions (RSC).",
   "private": false,
@@ -31,7 +31,7 @@
   },
   "packageManager": "pnpm@10.17.1",
   "devDependencies": {
-    "@actionflow/eslint-config": "workspace:*",
+    "actionflow-eslint-config": "workspace:*",
     "vitest": "^3.2.4"
   }
 }
