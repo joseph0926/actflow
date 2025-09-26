@@ -14,19 +14,21 @@
   "bugs": {
     "url": "https://github.com/joseph0926/actkit/issues"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p .",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p . --noEmit",
     "test": "vitest --run",
     "test:watch": "vitest",
@@ -41,7 +43,7 @@
     "vitest": "^3.2.4"
   },
   "peerDependencies": {
-    "vitest": "^3.2.4"
+    "zod": "^4.1"
   },
   "publishConfig": {
     "access": "public"
