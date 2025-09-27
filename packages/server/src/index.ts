@@ -1,3 +1,2 @@
-export { defineAction } from './action';
-export { createInvalidate } from './invalidate';
+export { defineAction, defineActionWithTags } from './action';
 export type { InvalidateFn, TagFns } from './types';

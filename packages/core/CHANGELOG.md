@@ -1,5 +1,11 @@
 # @actflow/core
 
+## 0.1.5
+
+### Patch Changes
+
+- Fix the phenomenon in which defineActionWithTags were not exported
+
 ## 0.1.4
 
 ### Patch Changes
