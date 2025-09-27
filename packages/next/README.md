@@ -1,24 +1,34 @@
 # actflow
 
+> 한국어 버전: [`docs/README.ko.md`](docs/README.ko.md)
+
 Make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
 
 - Standard rail: _optimistic → server → cache invalidation → reconcile/rollback → retry/dedupe_
 - One schema for **server tags** (`revalidateTag`) and **client query keys** (e.g. React Query)
-- Coming next: retries, outbox, cross-tab sync, devtools
+- Today: **server-only `defineAction` + type-safe tags + Next cache invalidation**
+- Next: retries, outbox, cross-tab sync, devtools
 
 ---
 
+## Why actflow?
+
+- **Predictable mutations**: One way in/out for actions; cache invalidation is explicit and type-safe.
+- **Type-safe tags/keys**: A single schema emits both **server tags** and **client query keys**—no drift.
+- **Server-only safety**: Invalidation uses a guarded, dynamic `next/cache` adapter; client imports fail fast.
+
+---
+
+## Packages
+
 - **`@actflow/next`** — Facade for apps
-  - `@actflow/next/server` re-exports `defineAction` (client import throws)
-  - `@actflow/next/core` re-exports `defineKeyFactory`
+  - `@actflow/next/server`: re-exports `defineAction` (client import throws)
+  - `@actflow/next/core`: re-exports `defineKeyFactory`
 
-- **`@actflow/server`** — `defineAction(name, zodSchema, handler)` (server-only)
-  - Zod-only (typed at compile time, checked at runtime)
-  - Handler receives `z.output<S>`, caller passes `z.input<S>`
+- **`@actflow/server`** — Core server utilities (`defineAction`, `createInvalidate`)
+- **`@actflow/core`** — Strict key/tag factory (one schema → `tags.*()` + `keys.*()`)
 
-- **`@actflow/core`** — strict query-key & tag factory (keys/tags from one schema)
-
-> Packages present in repo: `@actflow/next`, `@actflow/server`, `@actflow/core`, `@actflow/react`, `@actflow/adapter-react-query` (adapter optional).
+> Optional/coming: `@actflow/react`, `@actflow/adapter-react-query`, `@actflow/devtools`.
 
 ---
 
@@ -29,34 +39,13 @@ pnpm add @actflow/next zod
 # or: npm i @actflow/next zod
 ```
 
+**Requires:** Node ≥ 22, TypeScript ≥ 5.9, Next.js ≥ 15 (for facade), Zod.
+
 ---
 
 ## Quick Start
 
-### 1) Server Action (Zod-only)
-
-```ts
-// app/actions/posts.ts
-'use server';
-
-import { defineAction } from '@actflow/next/server';
-import { z } from 'zod';
-import { createPost } from '@/server/db';
-
-export const createPostAction = defineAction(
-  'post.create',
-  z.object({ title: z.string().min(1), body: z.string().min(1) }),
-  async ({ input }) => {
-    const row = await createPost(input);
-    // cache invalidation will be added as an option in future versions
-    return row;
-  },
-);
-```
-
-- **Why `name`?** Stable ID for logging, tracing, idempotency namespace, and DevTools.
-
-### 2) (Optional) Keys & Tags from one schema
+### 1) Define tags/keys once
 
 ```ts
 // lib/keys.ts
@@ -66,48 +55,105 @@ export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },
   post: { key: 'post', params: ['id'] as const },
 } as const);
-
-// Examples
-t.posts(); // 'posts'
-t.post({ id: 1 }); // 'post:1'
-qk.posts(); // ['posts']
-qk.post({ id: 1 }); // ['post', 1]
+// t.posts() -> 'posts', t.post({ id: 1 }) -> 'post:1'
+// qk.posts() -> ['posts'], qk.post({ id: 1 }) -> ['post', 1]
 ```
 
-Use `t.*()` with RSC caching/tagging, and `qk.*()` with client caches (e.g., React Query).
+### 2) Write a Server Action (server-only)
+
+```ts
+// app/actions/posts.ts
+'use server';
+
+import { defineAction } from '@actflow/next/server';
+import { z } from 'zod';
+import { t } from '@/lib/keys';
+import { db } from '@/server/db';
+
+export const createPost = defineAction(
+  {
+    name: 'post.create',
+    input: z.object({ title: z.string().min(1), body: z.string().min(1) }),
+    handler: async ({ input, ctx }) => {
+      const row = await db.post.create({ data: input });
+      // type-safe, server-only invalidation (Next revalidateTag under the hood)
+      await ctx.invalidate([ctx.tags.posts(), ctx.tags.post({ id: row.id })]);
+      return row;
+    },
+  },
+  { tags: t },
+);
+```
+
+### 3) Use tags in RSC fetch (example)
+
+```ts
+// app/(feed)/page.tsx (RSC)
+import { unstable_cache as cache } from 'next/cache';
+import { t } from '@/lib/keys';
+import { listPosts } from '@/server/db';
+
+const getPosts = cache(listPosts, ['posts:list'], { tags: [t.posts()] });
+
+export default async function Page() {
+  const posts = await getPosts();
+  // ...
+}
+```
 
 ---
 
 ## API (snapshot)
 
-### `defineAction(name, zodSchema, handler)`
+### `defineAction(config, { tags, invalidate? })`
 
-- **Server-only**; importing from client throws an error.
-- Zod is **required**:
-  - Compile time: `S extends z.ZodType`
-  - Runtime: `parse/safeParse` duck-typing check
+```ts
+type TagFns = Record<string, (...args: any[]) => string>;
+type InvalidateFn = (tags: readonly string[]) => Promise<void>;
 
-- Types flow:
-  - caller param → `z.input<S>`
-  - handler `input` → `z.output<S>`
+defineAction<S extends z.ZodType, Out, T extends TagFns>(
+  config: {
+    name: string;
+    input: S; // Zod schema (required)
+    handler: (args: { input: z.output<S>; ctx: { tags: T; invalidate: InvalidateFn } }) => Promise<Out>;
+  },
+  env: {
+    tags: T;                 // required: your type-safe tag functions
+    invalidate?: InvalidateFn; // optional: custom invalidation (defaults to Next revalidateTag)
+  }
+): (payload: z.input<S>) => Promise<Out>;
+```
+
+- **Server-only**: importing/running on the client throws a clear error.
+- **Types flow**: caller passes `z.input<S>`, handler receives `z.output<S>`.
+
+### `createInvalidate(): InvalidateFn`
+
+- Default **Next adapter**. Dynamically imports `next/cache` at runtime (server only).
+- If `next/cache` is unavailable, throws a helpful message.
+- You can inject your own `invalidate` to customize logging, batching, or to test without Next.
+
+### `defineKeyFactory(schema)`
+
+- Returns `{ tags, keys }` from one schema.
+- `tags.*()` → server invalidation strings.
+- `keys.*()` → client query keys (e.g., React Query).
 
 ---
 
-## Requirements
+## Guarantees & Safety
 
-- Node ≥ **22.19**
-- TypeScript ≥ **5.9**
-- Next.js ≥ **15** (for facade `@actflow/next`)
-- Zod ≥ **4** (peer dep)
+- **No app state ownership**: actflow never owns DB/session. You inject only `tags` (and optionally `invalidate`).
+- **Server-only guard**: invalidation is gated; client use fails fast.
+- **Drift-free**: keys/tags originate from one schema; fewer typos, fewer mismatches.
 
 ---
 
-## Roadmap
+## FAQ
 
-- `defineAction` options: **idempotency**, **cache invalidation** (tags/paths), **retry/backoff**
-- Outbox (IndexedDB), cross-tab sync (BroadcastChannel)
-- DevTools timeline
-- React Query adapter refinements
+- **Does actflow ship a cache?** No. It standardizes _mutation flow_; keep using your existing cache (RSC tags, React Query, etc.).
+- **Do I need React Query?** No. Adapters are optional.
+- **Where are retries/outbox?** On the roadmap; current focus is a solid server action rail and tag safety.
 
 ---
 
