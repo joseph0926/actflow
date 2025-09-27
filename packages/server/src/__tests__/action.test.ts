@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import z from 'zod';
 
-import { defineAction } from '../action';
+import { defineAction, defineActionWithTags } from '../action';
 
 const T = {
   posts: () => 'posts',
@@ -141,5 +141,52 @@ describe('defineAction — guards & errors', () => {
     await expect(action({ title: 'no' })).rejects.toMatchObject({
       name: 'ZodError',
     });
+  });
+});
+
+describe('defineActionWithTags — happy path & base invalidate wiring', () => {
+  it('uses base.invalidate when provided', async () => {
+    vi.resetModules();
+    const { defineActionWithTags } = await import('../action');
+
+    const baseInvalidate = vi.fn(async () => {});
+    const act = defineActionWithTags({ tags: T, invalidate: baseInvalidate });
+
+    const del = act({
+      name: 'post.delete',
+      input: z.object({ id: z.string() }),
+      handler: async ({ input, ctx }) => {
+        await ctx.invalidate([ctx.tags.posts()]);
+        return { ok: true, id: input.id };
+      },
+    });
+
+    const out = await del({ id: 'a' });
+    expect(out).toEqual({ ok: true, id: 'a' });
+    expect(baseInvalidate).toHaveBeenCalledWith(['posts']);
+  });
+
+  it('uses built-in invalidator when base.invalidate is omitted (next/cache.revalidateTag)', async () => {
+    const revalidateTag = vi.fn().mockResolvedValue(undefined);
+
+    vi.doMock('next/cache', () => ({
+      revalidateTag,
+    }));
+
+    const act = defineActionWithTags({ tags: T });
+
+    const create = act({
+      name: 'post.create',
+      input: z.object({ title: z.string().min(1) }),
+      handler: async ({ input, ctx }) => {
+        await ctx.invalidate([ctx.tags.posts(), ctx.tags.post({ id: 7 })]);
+        return input.title;
+      },
+    });
+
+    await create({ title: 'ok' });
+    expect(revalidateTag).toHaveBeenCalledTimes(2);
+    expect(revalidateTag).toHaveBeenNthCalledWith(1, 'posts');
+    expect(revalidateTag).toHaveBeenNthCalledWith(2, 'post:7');
   });
 });

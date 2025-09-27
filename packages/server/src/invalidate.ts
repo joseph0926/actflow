@@ -31,6 +31,7 @@ export function createInvalidate(): InvalidateFn {
             'Use this in a Next app or inject a custom `invalidate` via defineAction(..., { invalidate }).',
         );
       }
+
       cached = mod;
     }
 

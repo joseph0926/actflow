@@ -4,7 +4,8 @@
 
 - 표준 레일: _optimistic → server → cache invalidation → reconcile/rollback → retry/dedupe_
 - **서버 태그**(`revalidateTag`)와 **클라이언트 쿼리 키**(예: React Query)를 **하나의 스키마**로 생성
-- 오늘 제공: **서버 전용 `defineAction` + 타입 안전 태그 + Next 캐시 무효화**
+- 오늘 제공: **서버 전용 액션(`defineAction`, `defineActionWithTags`) + 타입 안전 태그 + Next 캐시 무효화(가드 적용)**
+  _(핸들러에서 `ctx.tags`가 정확히 추론되어 자동완성이 동작합니다.)_
 - 다음 제공 예정: 재시도, 아웃박스, 탭 간 동기화, DevTools
 
 ---
@@ -13,17 +14,17 @@
 
 - **예측 가능한 변이**: 액션의 입·출력을 한 경로로 통일하고, 캐시 무효화를 **명시적이고 타입 안전**하게 처리합니다.
 - **타입 안전 태그/키**: 하나의 스키마에서 **서버 태그**와 **클라 쿼리 키**를 동시에 생성—드리프트(불일치) 감소.
-- **서버 전용 안전장치**: 무효화는 동적 `next/cache` 어댑터로 **서버에서만** 실행되며, 클라이언트 임포트는 즉시 실패합니다.
+- **DX & 안전성**: `defineActionWithTags`로 태그를 한 번만 바인딩(보일러플레이트 감소, `ctx.tags` 자동완성), 무효화는 **서버 전용 가드 + 동적 `next/cache` 어댑터**로 안전하게 실행됩니다.
 
 ---
 
 ## 패키지
 
 - **`@actflow/next`** — 앱용 파사드
-  - `@actflow/next/server`: `defineAction` 재노출(클라이언트 임포트 시 에러)
+  - `@actflow/next/server`: `defineAction`, `defineActionWithTags`, `createInvalidate` 재노출(클라이언트 임포트 시 에러)
   - `@actflow/next/core`: `defineKeyFactory` 재노출
 
-- **`@actflow/server`** — 서버 유틸( `defineAction`, `createInvalidate`)
+- **`@actflow/server`** — 서버 유틸(`defineAction`, `defineActionWithTags`, `createInvalidate`)
 - **`@actflow/core`** — 키/태그 팩토리(하나의 스키마 → `tags.*()` + `keys.*()`)
 
 > 선택/예정: `@actflow/react`, `@actflow/adapter-react-query`, `@actflow/devtools`.
@@ -59,27 +60,50 @@ export const { tags: t, keys: qk } = defineKeyFactory({
 
 ### 2) 서버 액션 작성 (server-only)
 
+#### 권장: 태그를 한 번 바인딩(최소 보일러플레이트, 완벽한 자동완성)
+
 ```ts
 // app/actions/posts.ts
 'use server';
 
-import { defineAction } from '@actflow/next/server';
+import { defineActionWithTags } from '@actflow/next/server';
 import { z } from 'zod';
 import { t } from '@/lib/keys';
 import { db } from '@/server/db';
 
-export const createPost = defineAction(
+const act = defineActionWithTags({ tags: t }); // 한 번 바인딩 → ctx.tags 완전 추론
+
+export const createPost = act({
+  name: 'post.create',
+  input: z.object({ title: z.string().min(1), body: z.string().min(1) }),
+  handler: async ({ input, ctx }) => {
+    const row = await db.post.create({ data: input });
+    // 타입 안전한 서버 전용 무효화 (내부적으로 Next revalidateTag 사용)
+    await ctx.invalidate([ctx.tags.posts(), ctx.tags.post({ id: row.id })]);
+    return row;
+  },
+});
+
+// (선택) 액션별 invalidate 오버라이드:
+// export const removePost = act({ ... }, { invalidate: customInvalidate });
+```
+
+#### 로우레벨: 액션마다 태그를 명시
+
+```ts
+import { defineAction } from '@actflow/next/server';
+
+export const deletePost = defineAction(
   {
-    name: 'post.create',
-    input: z.object({ title: z.string().min(1), body: z.string().min(1) }),
+    name: 'post.delete',
+    input: z.object({ id: z.string().uuid() }),
     handler: async ({ input, ctx }) => {
-      const row = await db.post.create({ data: input });
-      // 타입 안전한 서버 전용 무효화 (내부적으로 Next revalidateTag 사용)
-      await ctx.invalidate([ctx.tags.posts(), ctx.tags.post({ id: row.id })]);
-      return row;
+      await db.post.delete({ where: { id: input.id } });
+      await ctx.invalidate([ctx.tags.posts()]);
+      return { ok: true };
     },
   },
-  { tags: t },
+  { tags: t }, // 여기서 invalidate를 직접 주입할 수도 있습니다.
 );
 ```
 
@@ -115,7 +139,7 @@ defineAction<S extends z.ZodType, Out, T extends TagFns>(
     input: S; // Zod 스키마 (필수)
     handler: (args: { input: z.output<S>; ctx: { tags: T; invalidate: InvalidateFn } }) => Promise<Out>;
   },
-  env: {
+  opts: {
     tags: T;                    // 필수: 타입 안전 태그 함수 모음
     invalidate?: InvalidateFn;  // 선택: 커스텀 무효화(기본값은 Next revalidateTag)
   }
@@ -124,12 +148,30 @@ defineAction<S extends z.ZodType, Out, T extends TagFns>(
 
 - **서버 전용**: 클라이언트에서 임포트/실행 시 명확한 에러가 발생합니다.
 - **타입 흐름**: 호출자는 `z.input<S>`를 넘기고, 핸들러는 `z.output<S>`를 받습니다.
+- **`ctx.tags` 추론**: `T`가 그대로 흘러 `ctx.tags.post({ id })`까지 정확히 체크됩니다.
+
+### `defineActionWithTags({ tags, invalidate? })`
+
+```ts
+defineActionWithTags<T extends TagFns>(base: {
+  tags: T;
+  invalidate?: InvalidateFn;
+}): <S extends z.ZodType, Out>(config: {
+  name: string;
+  input: S;
+  handler: (args: { input: z.output<S>; ctx: { tags: T; invalidate: InvalidateFn } }) => Promise<Out>;
+}, local?: { invalidate?: InvalidateFn }) => (payload: z.input<S>) => Promise<Out>;
+```
+
+- **한 번 바인딩, 여러 액션 재사용**: 모든 액션에 `tags`를 주입하고 `ctx.tags` 자동완성을 보장합니다.
+- **액션별 오버라이드**: 필요 시 `{ invalidate }`를 넘겨 기본 무효화를 대체할 수 있습니다.
+- **폴백**: `invalidate`가 없으면 내부 `createInvalidate()`(Next 어댑터)를 사용합니다.
 
 ### `createInvalidate(): InvalidateFn`
 
 - 기본 **Next 어댑터**. 런타임에 동적으로 `next/cache`를 임포트(서버 전용).
 - `next/cache`를 찾을 수 없으면 **명확한 안내 메시지**로 예외를 던집니다.
-- 로깅/배치/테스트(Next 없이) 등 커스터마이즈가 필요하다면 `invalidate`를 직접 주입하세요.
+- 테스트/로깅/배치 등 커스터마이즈가 필요하면 직접 `invalidate`를 주입하세요.
 
 ### `defineKeyFactory(schema)`
 
@@ -151,7 +193,8 @@ defineAction<S extends z.ZodType, Out, T extends TagFns>(
 
 - **캐시를 제공하나요?** 아니요. actflow는 *변이 흐름*을 표준화합니다. RSC 태그, React Query 등 기존 캐시를 그대로 쓰세요.
 - **React Query가 필수인가요?** 아닙니다. 어댑터는 선택 사항입니다.
-- **재시도/아웃박스는 어디에?** 로드맵에 있습니다. 현재는 **서버 액션 레일과 태그 안전성**에 초점을 맞추고 있습니다.
+- **무효화를 커스터마이즈하려면?** `defineAction(...)`에서 주입하거나, `defineActionWithTags(..., { invalidate })`로 액션별 오버라이드 하세요.
+- **재시도/아웃박스는 어디에?** 로드맵에 있습니다. 현재는 **서버 액션 레일과 태그 안전성**에 우선합니다.
 
 ---
 

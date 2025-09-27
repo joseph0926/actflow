@@ -1,5 +1,13 @@
 # @actflow/server
 
+## 0.1.4
+
+### Patch Changes
+
+- Implemented precise ctx.tags type inference by threading a generic TTags through defineAction, and added defineActionWithTags—a server-only factory that binds a tag schema (and optional invalidator, defaulting to the built-in createInvalidate)—so actions get full autocompletion and minimal boilerplate.
+- Updated dependencies
+  - @actflow/core@0.1.4
+
 ## 0.1.3
 
 ### Patch Changes
