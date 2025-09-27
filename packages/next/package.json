@@ -1,6 +1,6 @@
 {
   "name": "@actflow/next",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": false,
   "type": "module",
   "sideEffects": false,
@@ -10,10 +10,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
-    "./server": {
-      "react-server": "./dist/server/index.js",
-      "default": "./dist/server/server-only.js"
-    },
+    "./server": "./dist/server/index.js",
     "./react": "./dist/react/index.js",
     "./core": "./dist/core/index.js"
   },

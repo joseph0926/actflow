@@ -1,5 +1,13 @@
 # @actflow/server
 
+## 0.1.3
+
+### Patch Changes
+
+- Implemented a minimal Server Actions toolkit: a single defineAction(config, { tags }) API that enforces Zod-validated inputs and wires type-safe tags to server-only cache invalidation via a dynamic next/cache adapter (createInvalidate), with guards and Vitest coverage to verify behavior and module caching.
+- Updated dependencies
+  - @actflow/core@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

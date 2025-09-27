@@ -1,1 +1,2 @@
-export { defineAction } from '@actflow/server';
+export type { InvalidateFn, TagFns } from '@actflow/server';
+export { createInvalidate, defineAction } from '@actflow/server';
