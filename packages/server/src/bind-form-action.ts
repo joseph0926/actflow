@@ -1,5 +1,3 @@
-'use server';
-
 import { ZodError } from 'zod';
 
 import type { FormAction, FormDataLike, FormState } from './form-types';

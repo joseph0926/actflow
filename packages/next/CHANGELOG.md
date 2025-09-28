@@ -1,5 +1,14 @@
 # @actflow/next
 
+## 0.2.2
+
+### Patch Changes
+
+- delete "use server" directives
+- Updated dependencies
+  - @actflow/server@0.2.2
+  - @actflow/core@0.2.2
+
 ## 0.2.1
 
 ### Patch Changes
