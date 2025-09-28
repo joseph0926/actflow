@@ -30,3 +30,8 @@ pnpm-debug.log*
 
 # .env
 .env
+
+# next
+next-env.d.ts
+.next
+generated

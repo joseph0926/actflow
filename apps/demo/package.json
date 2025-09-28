@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "pnpm run db:gen && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "db:gen": "prisma generate",
     "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
