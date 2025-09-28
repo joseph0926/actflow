@@ -1,2 +1,2 @@
-export type { InvalidateFn, TagFns } from '@actflow/server';
-export { defineAction, defineActionWithTags } from '@actflow/server';
+export type { FormDataLike, FormState, InvalidateFn, TagFns } from '@actflow/server';
+export { bindFormAction, defineAction, defineActionWithTags } from '@actflow/server';

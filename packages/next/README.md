@@ -6,15 +6,16 @@ Make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
 
 - Standard rail: _optimistic → server → cache invalidation → reconcile/rollback → retry/dedupe_
 - One schema for **server tags** (`revalidateTag`) and **client query keys** (e.g. React Query)
-- Today: **server-only actions (`defineAction`, `defineActionWithTags`) + type-safe tags + Next cache invalidation**
+- Today: **server-only actions (`defineAction`, `defineActionWithTags`) + type-safe tags + Next cache invalidation + React 19 form binding (`bindFormAction`)**
 - Next: retries, outbox, cross-tab sync, devtools
 
 ---
 
 ## Why actflow?
 
-- **Predictable mutations**: One way in/out for actions; cache invalidation is explicit and type-safe.
+- **Predictable mutations**: One path in/out for actions; cache invalidation is explicit and type-safe.
 - **Type-safe tags/keys**: A single schema emits both **server tags** and **client query keys**—no drift.
+- **Unified form rail (React 19)**: Use `<form action>` + `useActionState`/`useFormStatus` with a tiny binder that maps Zod validation errors to field errors.
 - **DX & safety**: `defineActionWithTags` binds tags once (less boilerplate, full autocompletion for `ctx.tags`), while invalidation uses a guarded, dynamic `next/cache` adapter (client imports fail fast).
 
 ---
@@ -25,7 +26,10 @@ Make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
   - `@actflow/next/server`: re-exports `defineAction`, `defineActionWithTags`, `createInvalidate` (client import throws)
   - `@actflow/next/core`: re-exports `defineKeyFactory`
 
-- **`@actflow/server`** — Core server utilities (`defineAction`, `defineActionWithTags`, `createInvalidate`)
+- **`@actflow/server`** — Core server utilities
+  - `defineAction`, `defineActionWithTags`, `createInvalidate`
+  - **`bindFormAction`** (React 19 form binder) + `FormState` types
+
 - **`@actflow/core`** — Strict key/tag factory (one schema → `tags.*()` + `keys.*()`)
 
 > Optional/coming: `@actflow/react`, `@actflow/adapter-react-query`, `@actflow/devtools`.
@@ -79,14 +83,10 @@ export const createPost = act({
   input: z.object({ title: z.string().min(1), body: z.string().min(1) }),
   handler: async ({ input, ctx }) => {
     const row = await db.post.create({ data: input });
-    // type-safe, server-only invalidation (Next revalidateTag under the hood)
-    await ctx.invalidate([ctx.tags.posts(), ctx.tags.post({ id: row.id })]);
+    await ctx.invalidate([ctx.tags.posts(), ctx.tags.post({ id: row.id })]); // Next revalidateTag under the hood
     return row;
   },
 });
-
-// (optional) Per-action invalidate override:
-// export const removePost = act({ ... }, { invalidate: customInvalidate });
 ```
 
 #### Low-level: pass tags per action
@@ -104,11 +104,57 @@ export const deletePost = defineAction(
       return { ok: true };
     },
   },
-  { tags: t }, // invalidate can be injected here too
+  { tags: t }, // optional override: { invalidate: customInvalidate }
 );
 ```
 
-### 3) Use tags in RSC fetch
+### 3) Bind to React 19 form (unified form rail)
+
+```ts
+// app/actions/posts.ts (server)
+'use server';
+import { bindFormAction } from '@actflow/server';
+import { createPost } from './posts';
+
+export const createPostForm = bindFormAction(createPost, {
+  fromForm: (fd) => ({
+    title: String(fd.get('title') ?? ''),
+    body: String(fd.get('body') ?? ''),
+  }),
+  toSuccessState: () => ({ ok: true, message: 'Created!' }), // optional
+});
+```
+
+```tsx
+// app/(feed)/NewPostForm.tsx (client)
+'use client';
+import { useActionState, useFormStatus } from 'react';
+import { createPostForm } from '@/app/actions/posts';
+
+export default function NewPostForm() {
+  const [state, formAction] = useActionState(createPostForm, { ok: true } as const);
+  const { pending } = useFormStatus();
+
+  return (
+    <form action={formAction}>
+      <input name="title" placeholder="Title" aria-invalid={!!state.fieldErrors?.title} />
+      {state.fieldErrors?.title && <small>{state.fieldErrors.title}</small>}
+
+      <textarea name="body" placeholder="Body" aria-invalid={!!state.fieldErrors?.body} />
+      {state.fieldErrors?.body && <small>{state.fieldErrors.body}</small>}
+
+      <button disabled={pending}>{pending ? 'Posting…' : 'Post'}</button>
+      {state.formError && <p role="alert">{state.formError}</p>}
+      {'message' in state && state.message && <p>{state.message}</p>}
+    </form>
+  );
+}
+```
+
+- Zod validation errors are **auto-mapped to `fieldErrors`**.
+- Non-Zod errors are thrown (use your error boundary). Auth/conflict mapping can be added later.
+
+### 4) Use tags in RSC fetch (drift-free)
 
 ```ts
 // app/(feed)/page.tsx (RSC)
@@ -164,29 +210,33 @@ defineActionWithTags<T extends TagFns>(base: {
 }, local?: { invalidate?: InvalidateFn }) => (payload: z.input<S>) => Promise<Out>;
 ```
 
-- **Bind once, use many**: injects `tags` into all actions; `ctx.tags` has full autocompletion.
-- **Per-action override**: optionally pass `{ invalidate }` to override the base invalidator.
-- **Fallback**: if no invalidator is provided, a built-in Next adapter (`createInvalidate`) is used.
-
 ### `createInvalidate(): InvalidateFn`
 
 - Default **Next adapter**. Dynamically imports `next/cache` at runtime (server only).
 - If `next/cache` is unavailable, throws a helpful message.
-- Useful when you want to plug a custom invalidation strategy in tests or non-Next runtimes.
 
 ### `defineKeyFactory(schema)`
 
-- Returns `{ tags, keys }` from one schema.
-- `tags.*()` → server invalidation strings.
-- `keys.*()` → client query keys (e.g., React Query).
+- `{ tags, keys }` from one schema (`tags.*()` for server invalidation; `keys.*()` for client caches).
+
+### `bindFormAction(action, { fromForm, toSuccessState? })`
+
+- Wrap a server action into a **React 19 form action** compatible with both `<form action={fn}>` and `useActionState`.
+- **Maps `ZodError` to `{ ok:false, fieldErrors }`**; other errors are thrown (can be mapped later via an option).
+
+### Types
+
+- `FormState<F = string> = { ok:true; message? } | { ok:false; formError?; fieldErrors?: Partial<Record<F,string>> }`
+- `FormAction` (overloaded): `(fd) => Promise<FormState>` **or** `(prevState, fd) => Promise<FormState>`
 
 ---
 
 ## Guarantees & Safety
 
 - **No app state ownership**: actflow never owns DB/session. You inject only `tags` (and optionally `invalidate`).
-- **Server-only guard**: invalidation is gated; client use fails fast.
+- **Server-only guard**: invalidation and action helpers are gated; client use fails fast.
 - **Drift-free**: keys/tags originate from one schema; fewer typos, fewer mismatches.
+- **React 19–first**: we standardize the **form rail**; non-form mutation hooks remain optional.
 
 ---
 
@@ -195,7 +245,7 @@ defineActionWithTags<T extends TagFns>(base: {
 - **Does actflow ship a cache?** No. It standardizes _mutation flow_; keep using your existing cache (RSC tags, React Query, etc.).
 - **Do I need React Query?** No. Adapters are optional.
 - **How do I customize invalidation?** Inject `invalidate` in `defineAction(...)` or per-action via `defineActionWithTags(..., { invalidate })`.
-- **Where are retries/outbox?** On the roadmap; current focus is a solid server action rail and tag safety.
+- **Where are retries/outbox?** On the roadmap; current focus is a solid server action rail, tag safety, and form rail.
 
 ---
 

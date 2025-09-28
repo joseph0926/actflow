@@ -1,3 +1,5 @@
+'use server';
+
 import type { z } from 'zod';
 
 import { assertServerOnly, createInvalidate } from './invalidate';
