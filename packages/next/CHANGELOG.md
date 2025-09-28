@@ -1,5 +1,14 @@
 # @actflow/next
 
+## 0.2.3
+
+### Patch Changes
+
+- Add comprehensive error handling with built-in mappers for common HTTP errors and simplify package exports for better DX
+- Updated dependencies
+  - @actflow/server@0.2.3
+  - @actflow/core@0.2.3
+
 ## 0.2.2
 
 ### Patch Changes

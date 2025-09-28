@@ -1,33 +1,34 @@
 # actflow
 
-**Next.js 서버 액션(RSC)** 앱에서 변이(mutation) 흐름을 **예측 가능**하게 만듭니다.
+> English version: [`README.md`](../README.md)
 
-- 표준 레일: _낙관적 업데이트 → 서버 → 캐시 무효화 → 조정/롤백 → 재시도/중복 제거_
-- **서버 태그**(`revalidateTag`)와 **클라이언트 쿼리 키**(예: React Query)를 **하나의 스키마**로 생성
-- 오늘 제공: **서버 전용 액션(`defineAction`, `defineActionWithTags`) + 타입 안전 태그 + Next 캐시 무효화(가드 적용)**
-  _(핸들러에서 `ctx.tags`가 정확히 추론되어 자동완성이 동작합니다.)_
-- 다음 제공 예정: 재시도, 아웃박스, 탭 간 동기화, 개발 도구
+**Next.js Server Actions (RSC)** 앱에서 변이 흐름을 **예측 가능**하게 만듭니다.
+
+- 표준 레일: _낙관적 업데이트 → 서버 실행 → 캐시 무효화 → 정합/롤백 → 재시도/중복 제거_
+- **서버 태그**(`revalidateTag`)와 **클라이언트 쿼리 키**(예: React Query)를 위한 하나의 스키마
+- **폼 우선 + 에러 처리**: React 19 폼 + 자동 에러 매핑 (인증/검증/충돌)
+- **타입 안전 태그**: 서버와 클라이언트 간 문자열 불일치 제거
+- 다음: 재시도, 아웃박스, 크로스탭 동기화, 개발 도구
 
 ---
 
 ## 왜 actflow인가?
 
-- **예측 가능한 변이**: 액션의 입·출력을 한 경로로 통일하고, 캐시 무효화를 **명시적이고 타입 안전**하게 처리합니다.
-- **타입 안전 태그/키**: 하나의 스키마에서 **서버 태그**와 **클라이언트 쿼리 키**를 동시에 생성—불일치 감소.
-- **DX & 안전성**: `defineActionWithTags`로 태그를 한 번만 바인딩(보일러플레이트 감소, `ctx.tags` 자동완성), 무효화는 **서버 전용 가드 + 동적 `next/cache` 어댑터**로 안전하게 실행됩니다.
+- **예측 가능한 변이**: 액션의 입출력 경로가 하나; 캐시 무효화가 명시적이고 타입 안전함
+- **타입 안전 태그/키**: 단일 스키마에서 **서버 태그**와 **클라이언트 쿼리 키**를 모두 생성—불일치 없음
+- **통합 폼 레일 (React 19)**: `<form action>` + `useActionState`/`useFormStatus`를 Zod 검증 자동 매핑과 커스터마이징 가능한 에러 처리와 함께 사용
+- **프로덕션 준비 에러 처리**: 일반적인 HTTP 에러(401/403/404/409/429)를 위한 내장 매퍼와 합리적인 기본값
+- **DX & 안전성**: `defineActionWithTags`로 태그를 한 번만 바인딩(보일러플레이트 감소, `ctx.tags` 완전 자동완성), 보호된 동적 `next/cache` 어댑터 사용 (클라이언트 import 즉시 실패)
 
 ---
 
 ## 패키지
 
-- **`@actflow/next`** — 앱용 파사드
-  - `@actflow/next/server`: `defineAction`, `defineActionWithTags`, `createInvalidate` 재노출(클라이언트 임포트 시 에러)
-  - `@actflow/next/core`: `defineKeyFactory` 재노출
+- **`@actflow/next`** — 올인원 Next.js 통합
+- **`@actflow/server`** — 코어 서버 유틸리티 (액션, 폼, 에러 처리)
+- **`@actflow/core`** — 엄격한 키/태그 팩토리
 
-- **`@actflow/server`** — 서버 유틸(`defineAction`, `defineActionWithTags`, `createInvalidate`)
-- **`@actflow/core`** — 키/태그 팩토리(하나의 스키마 → `tags.*()` + `keys.*()`)
-
-> 선택/예정: `@actflow/react`, `@actflow/adapter-react-query`, `@actflow/devtools`.
+> 옵션/예정: `@actflow/react`, `@actflow/adapter-react-query`, `@actflow/devtools`
 
 ---
 
@@ -38,17 +39,17 @@ pnpm add @actflow/next zod
 # 또는: npm i @actflow/next zod
 ```
 
-**요구사항:** Node ≥ 22, TypeScript ≥ 5.9, Next.js ≥ 15(파사드 사용 시), Zod.
+**요구사항:** Next.js ≥ 14, React ≥ 18.2, Zod ≥ 3.22
 
 ---
 
 ## 빠른 시작
 
-### 1) 태그/키를 한 번에 정의
+### 1) 태그/키를 한 번만 정의
 
 ```ts
 // lib/keys.ts
-import { defineKeyFactory } from '@actflow/next/core';
+import { defineKeyFactory } from '@actflow/next';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },
@@ -58,143 +59,247 @@ export const { tags: t, keys: qk } = defineKeyFactory({
 // qk.posts() -> ['posts'], qk.post({ id: 1 }) -> ['post', 1]
 ```
 
-### 2) 서버 액션 작성 (서버 전용)
-
-#### 권장: 태그를 한 번 바인딩(최소 보일러플레이트, 완벽한 자동완성)
+### 2) Server Actions 작성
 
 ```ts
 // app/actions/posts.ts
 'use server';
 
-import { defineActionWithTags } from '@actflow/next/server';
+import { defineActionWithTags } from '@actflow/next';
 import { z } from 'zod';
 import { t } from '@/lib/keys';
 import { db } from '@/server/db';
 
-const act = defineActionWithTags({ tags: t }); // 한 번 바인딩 → ctx.tags 완전 추론
+const act = defineActionWithTags({ tags: t });
 
 export const createPost = act({
   name: 'post.create',
   input: z.object({ title: z.string().min(1), body: z.string().min(1) }),
   handler: async ({ input, ctx }) => {
     const row = await db.post.create({ data: input });
-    // 타입 안전한 서버 전용 무효화 (내부적으로 Next revalidateTag 사용)
     await ctx.invalidate([ctx.tags.posts(), ctx.tags.post({ id: row.id })]);
     return row;
   },
 });
 
-// (선택) 액션별 invalidate 오버라이드:
-// export const removePost = act({ ... }, { invalidate: customInvalidate });
-```
+export const deletePost = act({
+  name: 'post.delete',
+  input: z.object({ id: z.string().uuid() }),
+  handler: async ({ input, ctx }) => {
+    // 404나 403을 던질 수 있음
+    const post = await db.post.findUniqueOrThrow({ where: { id: input.id } });
 
-#### 로우레벨: 액션마다 태그를 명시
+    if (post.authorId !== ctx.userId) {
+      throw { status: 403 }; // 에러 핸들러가 매핑
+    }
 
-```ts
-import { defineAction } from '@actflow/next/server';
-
-export const deletePost = defineAction(
-  {
-    name: 'post.delete',
-    input: z.object({ id: z.string().uuid() }),
-    handler: async ({ input, ctx }) => {
-      await db.post.delete({ where: { id: input.id } });
-      await ctx.invalidate([ctx.tags.posts()]);
-      return { ok: true };
-    },
+    await db.post.delete({ where: { id: input.id } });
+    await ctx.invalidate([ctx.tags.posts()]);
+    return { ok: true };
   },
-  { tags: t }, // 여기서 invalidate를 직접 주입할 수도 있습니다.
-);
+});
 ```
 
-### 3) RSC fetch에서 태그 사용 (예시)
+### 3) 에러 처리가 포함된 폼
 
 ```ts
-// app/(feed)/page.tsx (RSC)
+// app/actions/posts.ts (계속)
+'use server';
+import {
+  bindFormAction,
+  createAuthErrorMapper,
+  createNotFoundErrorMapper,
+  combineErrorMappers,
+} from '@actflow/next';
+
+// 폼용 통합 에러 매퍼 생성
+const formErrorMapper = combineErrorMappers(
+  createAuthErrorMapper({
+    unauthorized: '로그인이 필요합니다',
+    forbidden: '권한이 없습니다',
+  }),
+  createNotFoundErrorMapper({
+    message: '게시글을 찾을 수 없습니다',
+  }),
+);
+
+export const createPostForm = bindFormAction(createPost, {
+  fromForm: (fd) => ({
+    title: String(fd.get('title') ?? ''),
+    body: String(fd.get('body') ?? ''),
+  }),
+  mapError: formErrorMapper,
+  unmappedErrorStrategy: 'generic',
+  genericErrorMessage: '문제가 발생했습니다. 다시 시도해주세요.',
+});
+
+export const deletePostForm = bindFormAction(deletePost, {
+  fromForm: (fd) => ({
+    id: String(fd.get('id') ?? ''),
+  }),
+  mapError: formErrorMapper,
+});
+```
+
+### 4) 에러 상태가 포함된 React 컴포넌트
+
+```tsx
+// app/(feed)/PostForm.tsx
+'use client';
+import { useActionState } from 'react';
+import { createPostForm } from '@/app/actions/posts';
+
+export default function PostForm() {
+  const [state, formAction] = useActionState(createPostForm, { ok: true });
+
+  // 다양한 에러 이유 처리
+  if (!state.ok && state.reason === 'AUTH') {
+    return <div>게시글을 작성하려면 로그인하세요.</div>;
+  }
+
+  return (
+    <form action={formAction}>
+      <input name="title" placeholder="제목" aria-invalid={!!state.fieldErrors?.title} />
+      {state.fieldErrors?.title && <span className="error">{state.fieldErrors.title}</span>}
+
+      <textarea name="body" placeholder="내용" aria-invalid={!!state.fieldErrors?.body} />
+      {state.fieldErrors?.body && <span className="error">{state.fieldErrors.body}</span>}
+
+      <button type="submit">게시글 작성</button>
+
+      {!state.ok && state.formError && (
+        <div className="error" role="alert">
+          {state.formError}
+        </div>
+      )}
+
+      {state.ok && state.message && <div className="success">{state.message}</div>}
+    </form>
+  );
+}
+```
+
+### 5) RSC fetch에서 태그 사용
+
+```ts
+// app/(feed)/page.tsx
 import { unstable_cache as cache } from 'next/cache';
 import { t } from '@/lib/keys';
-import { listPosts } from '@/server/db';
 
-const getPosts = cache(listPosts, ['posts:list'], { tags: [t.posts()] });
+const getPosts = cache(
+  async () => db.post.findMany(),
+  ['posts:list'],
+  { tags: [t.posts()] }
+);
 
 export default async function Page() {
   const posts = await getPosts();
-  // ...
+  return <PostList posts={posts} />;
 }
 ```
 
 ---
 
-## API (스냅샷)
+## 에러 처리
 
-### `defineAction(config, { tags, invalidate? })`
+actflow는 일반적인 시나리오를 위한 내장 에러 매퍼를 제공합니다:
+
+### 사용 가능한 에러 매퍼
 
 ```ts
-type TagFns = Record<string, (...args: any[]) => string>;
-type InvalidateFn = (tags: readonly string[]) => Promise<void>;
+import {
+  createAuthErrorMapper, // 401/403
+  createValidationErrorMapper, // 400 (Zod 외)
+  createNotFoundErrorMapper, // 404
+  createConflictErrorMapper, // 409
+  createRateLimitErrorMapper, // 429
+  createDefaultErrorMappers, // 모두 통합
+  ERROR_REASONS, // 타입 안전 reason 상수
+} from '@actflow/next';
+```
 
-defineAction<S extends z.ZodType, Out, T extends TagFns>(
-  config: {
-    name: string;
-    input: S; // Zod 스키마 (필수)
-    handler: (args: { input: z.output<S>; ctx: { tags: T; invalidate: InvalidateFn } }) => Promise<Out>;
-  },
-  opts: {
-    tags: T;                    // 필수: 타입 안전 태그 함수 모음
-    invalidate?: InvalidateFn;  // 선택: 커스텀 무효화(기본값은 Next revalidateTag)
+### 커스텀 에러 매핑
+
+```ts
+// 도메인 에러용 커스텀 매퍼 생성
+const customMapper = (error: unknown): FormState | null => {
+  if (error instanceof PrismaClientKnownRequestError) {
+    if (error.code === 'P2002') {
+      return {
+        ok: false,
+        reason: 'CONFLICT',
+        formError: '이미 존재합니다',
+      };
+    }
   }
-): (payload: z.input<S>) => Promise<Out>;
+  return null;
+};
+
+// 내장 매퍼와 결합
+const appErrorMapper = combineErrorMappers(customMapper, createDefaultErrorMappers());
+
+// 폼에서 사용
+export const myForm = bindFormAction(myAction, {
+  fromForm: (fd) => ({
+    /* ... */
+  }),
+  mapError: appErrorMapper,
+  unmappedErrorStrategy: 'generic', // 또는 'throw'
+});
 ```
 
-- **서버 전용**: 클라이언트에서 임포트/실행 시 명확한 에러가 발생합니다.
-- **타입 흐름**: 호출자는 `z.input<S>`를 넘기고, 핸들러는 `z.output<S>`를 받습니다.
-- **`ctx.tags` 추론**: `T`가 그대로 흘러 `ctx.tags.post({ id })`까지 정확히 체크됩니다.
+### 에러 이유
 
-### `defineActionWithTags({ tags, invalidate? })`
+FormState는 에러 분류를 위한 타입이 지정된 `reason` 필드를 포함합니다:
 
 ```ts
-defineActionWithTags<T extends TagFns>(base: {
-  tags: T;
-  invalidate?: InvalidateFn;
-}): <S extends z.ZodType, Out>(config: {
-  name: string;
-  input: S;
-  handler: (args: { input: z.output<S>; ctx: { tags: T; invalidate: InvalidateFn } }) => Promise<Out>;
-}, local?: { invalidate?: InvalidateFn }) => (payload: z.input<S>) => Promise<Out>;
+type FormState<F = string> =
+  | { ok: true; message?: string }
+  | {
+      ok: false;
+      reason?: 'AUTH' | 'VALIDATION' | 'NOT_FOUND' | 'CONFLICT' | 'RATE_LIMIT' | string;
+      formError?: string;
+      fieldErrors?: Partial<Record<F, string>>;
+    };
 ```
 
-- **한 번 바인딩, 여러 액션 재사용**: 모든 액션에 `tags`를 주입하고 `ctx.tags` 자동완성을 보장합니다.
-- **액션별 오버라이드**: 필요 시 `{ invalidate }`를 넘겨 기본 무효화를 대체할 수 있습니다.
-- **폴백**: `invalidate`가 없으면 내부 `createInvalidate()`(Next 어댑터)를 사용합니다.
+---
 
-### `createInvalidate(): InvalidateFn`
+## API 레퍼런스
 
-- 기본 **Next 어댑터**. 런타임에 동적으로 `next/cache`를 임포트(서버 전용).
-- `next/cache`를 찾을 수 없으면 **명확한 안내 메시지**로 예외를 던집니다.
-- 테스트/로깅/배치 등 커스터마이즈가 필요하면 직접 `invalidate`를 주입하세요.
+### 핵심 함수
 
-### `defineKeyFactory(schema)`
+- `defineAction(config, { tags, invalidate? })` - 서버 액션 정의
+- `defineActionWithTags({ tags })` - 태그가 바인딩된 액션 팩토리 생성
+- `bindFormAction(action, config)` - React 19 폼용 액션 래핑
+- `defineKeyFactory(schema)` - 하나의 스키마에서 타입 안전 태그/키 생성
 
-- 하나의 스키마에서 `{ tags, keys }`를 생성합니다.
-- `tags.*()` → 서버 무효화 문자열.
-- `keys.*()` → 클라이언트 쿼리 키(예: React Query).
+### 에러 처리
+
+- `createAuthErrorMapper(options?)` - 401/403 에러 매핑
+- `createValidationErrorMapper(options?)` - 400/검증 에러 매핑
+- `createNotFoundErrorMapper(options?)` - 404 에러 매핑
+- `createConflictErrorMapper(options?)` - 409 에러 매핑
+- `createRateLimitErrorMapper(options?)` - 429 에러 매핑
+- `createDefaultErrorMappers(options?)` - 모든 매퍼 통합
+- `combineErrorMappers(...mappers)` - 여러 매퍼 체이닝
+
+### 타입
+
+- `FormState<F>` - 폼 제출 결과 타입
+- `FormAction<F>` - React 19 폼 액션 시그니처
+- `ErrorMapper<F>` - 에러 매핑 함수 타입
+- `ERROR_REASONS` - 에러 이유 상수
 
 ---
 
-## 보장 & 안전성
+## v0.2에서 마이그레이션
 
-- **앱 상태 비소유**: actflow는 DB/세션을 소유하지 않습니다. `tags`(와 선택 `invalidate`)만 주입합니다.
-- **서버 전용 가드**: 무효화는 게이트로 보호되며, 클라이언트 사용은 즉시 실패합니다.
-- **불일치 방지**: 키/태그가 **하나의 스키마**에서 파생—오타·불일치 감소.
+공개 API에는 breaking change가 없습니다.
 
----
-
-## 자주 묻는 질문(FAQ)
-
-- **캐시를 제공하나요?** 아니요. actflow는 *변이 흐름*을 표준화합니다. RSC 태그, React Query 등 기존 캐시를 그대로 쓰세요.
-- **React Query가 필수인가요?** 아닙니다. 어댑터는 선택 사항입니다.
-- **무효화를 커스터마이즈하려면?** `defineAction(...)`에서 주입하거나, `defineActionWithTags(..., { invalidate })`로 액션별 오버라이드 하세요.
-- **재시도/아웃박스는 어디에?** 로드맵에 있습니다. 현재는 **서버 액션 레일과 태그 안전성**에 우선합니다.
+- 내장 매퍼를 포함한 에러 처리 시스템
+- 간소화된 import (서브 경로 불필요)
+- 에러 분류를 위한 FormState의 `reason` 필드
 
 ---
 

@@ -1,6 +1,6 @@
 export type FormState<F extends string = string> =
   | { ok: true; message?: string }
-  | { ok: false; formError?: string; fieldErrors?: Partial<Record<F, string>> };
+  | { ok: false; reason?: string; formError?: string; fieldErrors?: Partial<Record<F, string>> };
 
 export type FormDataLike = { get(name: string): unknown };
 

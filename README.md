@@ -6,7 +6,8 @@ Make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
 
 - Standard rail: _optimistic → server → cache invalidation → reconcile/rollback → retry/dedupe_
 - One schema for **server tags** (`revalidateTag`) and **client query keys** (e.g. React Query)
-- Today: **server-only actions (`defineAction`, `defineActionWithTags`) + type-safe tags + Next cache invalidation + React 19 form binding (`bindFormAction`)**
+- **Form-first with error handling**: React 19 forms + automatic error mapping (auth/validation/conflict)
+- **Type-safe tags**: No more string drift between server and client
 - Next: retries, outbox, cross-tab sync, devtools
 
 ---
@@ -15,22 +16,17 @@ Make mutation flows **predictable** in **Next.js Server Actions (RSC)** apps.
 
 - **Predictable mutations**: One path in/out for actions; cache invalidation is explicit and type-safe.
 - **Type-safe tags/keys**: A single schema emits both **server tags** and **client query keys**—no drift.
-- **Unified form rail (React 19)**: Use `<form action>` + `useActionState`/`useFormStatus` with a tiny binder that maps Zod validation errors to field errors.
+- **Unified form rail (React 19)**: Use `<form action>` + `useActionState`/`useFormStatus` with automatic Zod validation mapping and customizable error handling.
+- **Production-ready error handling**: Built-in mappers for common HTTP errors (401/403/404/409/429) with sensible defaults.
 - **DX & safety**: `defineActionWithTags` binds tags once (less boilerplate, full autocompletion for `ctx.tags`), while invalidation uses a guarded, dynamic `next/cache` adapter (client imports fail fast).
 
 ---
 
 ## Packages
 
-- **`@actflow/next`** — Facade for apps
-  - `@actflow/next/server`: re-exports `defineAction`, `defineActionWithTags`, `createInvalidate` (client import throws)
-  - `@actflow/next/core`: re-exports `defineKeyFactory`
-
-- **`@actflow/server`** — Core server utilities
-  - `defineAction`, `defineActionWithTags`, `createInvalidate`
-  - **`bindFormAction`** (React 19 form binder) + `FormState` types
-
-- **`@actflow/core`** — Strict key/tag factory (one schema → `tags.*()` + `keys.*()`)
+- **`@actflow/next`** — All-in-one Next.js integration
+- **`@actflow/server`** — Core server utilities (actions, forms, error handling)
+- **`@actflow/core`** — Strict key/tag factory
 
 > Optional/coming: `@actflow/react`, `@actflow/adapter-react-query`, `@actflow/devtools`.
 
@@ -43,7 +39,7 @@ pnpm add @actflow/next zod
 # or: npm i @actflow/next zod
 ```
 
-**Requires:** Node ≥ 22, TypeScript ≥ 5.9, Next.js ≥ 15 (for facade), Zod.
+**Requires:** Next.js ≥ 14, React ≥ 18.2, Zod ≥ 3.22
 
 ---
 
@@ -53,7 +49,7 @@ pnpm add @actflow/next zod
 
 ```ts
 // lib/keys.ts
-import { defineKeyFactory } from '@actflow/next/core';
+import { defineKeyFactory } from '@actflow/next';
 
 export const { tags: t, keys: qk } = defineKeyFactory({
   posts: { key: 'posts' },
@@ -63,189 +59,247 @@ export const { tags: t, keys: qk } = defineKeyFactory({
 // qk.posts() -> ['posts'], qk.post({ id: 1 }) -> ['post', 1]
 ```
 
-### 2) Write Server Actions (server-only)
-
-#### Preferred: bind tags once (best DX)
+### 2) Write Server Actions
 
 ```ts
 // app/actions/posts.ts
 'use server';
 
-import { defineActionWithTags } from '@actflow/next/server';
+import { defineActionWithTags } from '@actflow/next';
 import { z } from 'zod';
 import { t } from '@/lib/keys';
 import { db } from '@/server/db';
 
-const act = defineActionWithTags({ tags: t }); // binds tags; ctx.tags is fully typed
+const act = defineActionWithTags({ tags: t });
 
 export const createPost = act({
   name: 'post.create',
   input: z.object({ title: z.string().min(1), body: z.string().min(1) }),
   handler: async ({ input, ctx }) => {
     const row = await db.post.create({ data: input });
-    await ctx.invalidate([ctx.tags.posts(), ctx.tags.post({ id: row.id })]); // Next revalidateTag under the hood
+    await ctx.invalidate([ctx.tags.posts(), ctx.tags.post({ id: row.id })]);
     return row;
+  },
+});
+
+export const deletePost = act({
+  name: 'post.delete',
+  input: z.object({ id: z.string().uuid() }),
+  handler: async ({ input, ctx }) => {
+    // This might throw 404 or 403
+    const post = await db.post.findUniqueOrThrow({ where: { id: input.id } });
+
+    if (post.authorId !== ctx.userId) {
+      throw { status: 403 }; // Will be mapped by error handlers
+    }
+
+    await db.post.delete({ where: { id: input.id } });
+    await ctx.invalidate([ctx.tags.posts()]);
+    return { ok: true };
   },
 });
 ```
 
-#### Low-level: pass tags per action
+### 3) Forms with Error Handling
 
 ```ts
-import { defineAction } from '@actflow/next/server';
-
-export const deletePost = defineAction(
-  {
-    name: 'post.delete',
-    input: z.object({ id: z.string().uuid() }),
-    handler: async ({ input, ctx }) => {
-      await db.post.delete({ where: { id: input.id } });
-      await ctx.invalidate([ctx.tags.posts()]);
-      return { ok: true };
-    },
-  },
-  { tags: t }, // optional override: { invalidate: customInvalidate }
-);
-```
-
-### 3) Bind to React 19 form (unified form rail)
-
-```ts
-// app/actions/posts.ts (server)
+// app/actions/posts.ts (continued)
 'use server';
-import { bindFormAction } from '@actflow/server';
-import { createPost } from './posts';
+import {
+  bindFormAction,
+  createAuthErrorMapper,
+  createNotFoundErrorMapper,
+  combineErrorMappers,
+} from '@actflow/next';
+
+// Create a combined error mapper for your forms
+const formErrorMapper = combineErrorMappers(
+  createAuthErrorMapper({
+    unauthorized: 'Please sign in to continue',
+    forbidden: 'You do not have permission',
+  }),
+  createNotFoundErrorMapper({
+    message: 'Post not found',
+  }),
+);
 
 export const createPostForm = bindFormAction(createPost, {
   fromForm: (fd) => ({
     title: String(fd.get('title') ?? ''),
     body: String(fd.get('body') ?? ''),
   }),
-  toSuccessState: () => ({ ok: true, message: 'Created!' }), // optional
+  mapError: formErrorMapper,
+  unmappedErrorStrategy: 'generic',
+  genericErrorMessage: 'Something went wrong. Please try again.',
+});
+
+export const deletePostForm = bindFormAction(deletePost, {
+  fromForm: (fd) => ({
+    id: String(fd.get('id') ?? ''),
+  }),
+  mapError: formErrorMapper,
 });
 ```
 
+### 4) React Component with Error States
+
 ```tsx
-// app/(feed)/NewPostForm.tsx (client)
+// app/(feed)/PostForm.tsx
 'use client';
-import { useActionState, useFormStatus } from 'react';
+import { useActionState } from 'react';
 import { createPostForm } from '@/app/actions/posts';
 
-export default function NewPostForm() {
-  const [state, formAction] = useActionState(createPostForm, { ok: true } as const);
-  const { pending } = useFormStatus();
+export default function PostForm() {
+  const [state, formAction] = useActionState(createPostForm, { ok: true });
+
+  // Handle different error reasons
+  if (!state.ok && state.reason === 'AUTH') {
+    return <div>Please sign in to create posts.</div>;
+  }
 
   return (
     <form action={formAction}>
       <input name="title" placeholder="Title" aria-invalid={!!state.fieldErrors?.title} />
-      {state.fieldErrors?.title && <small>{state.fieldErrors.title}</small>}
+      {state.fieldErrors?.title && <span className="error">{state.fieldErrors.title}</span>}
 
       <textarea name="body" placeholder="Body" aria-invalid={!!state.fieldErrors?.body} />
-      {state.fieldErrors?.body && <small>{state.fieldErrors.body}</small>}
+      {state.fieldErrors?.body && <span className="error">{state.fieldErrors.body}</span>}
 
-      <button disabled={pending}>{pending ? 'Posting…' : 'Post'}</button>
-      {state.formError && <p role="alert">{state.formError}</p>}
-      {'message' in state && state.message && <p>{state.message}</p>}
+      <button type="submit">Create Post</button>
+
+      {!state.ok && state.formError && (
+        <div className="error" role="alert">
+          {state.formError}
+        </div>
+      )}
+
+      {state.ok && state.message && <div className="success">{state.message}</div>}
     </form>
   );
 }
 ```
 
-- Zod validation errors are **auto-mapped to `fieldErrors`**.
-- Non-Zod errors are thrown (use your error boundary). Auth/conflict mapping can be added later.
-
-### 4) Use tags in RSC fetch (drift-free)
+### 5) Use tags in RSC fetch
 
 ```ts
-// app/(feed)/page.tsx (RSC)
+// app/(feed)/page.tsx
 import { unstable_cache as cache } from 'next/cache';
 import { t } from '@/lib/keys';
-import { listPosts } from '@/server/db';
 
-const getPosts = cache(listPosts, ['posts:list'], { tags: [t.posts()] });
+const getPosts = cache(
+  async () => db.post.findMany(),
+  ['posts:list'],
+  { tags: [t.posts()] }
+);
 
 export default async function Page() {
   const posts = await getPosts();
-  // ...
+  return <PostList posts={posts} />;
 }
 ```
 
 ---
 
-## API (snapshot)
+## Error Handling
 
-### `defineAction(config, { tags, invalidate? })`
+actflow provides built-in error mappers for common scenarios:
+
+### Available Error Mappers
 
 ```ts
-type TagFns = Record<string, (...args: any[]) => string>;
-type InvalidateFn = (tags: readonly string[]) => Promise<void>;
+import {
+  createAuthErrorMapper, // 401/403
+  createValidationErrorMapper, // 400 (non-Zod)
+  createNotFoundErrorMapper, // 404
+  createConflictErrorMapper, // 409
+  createRateLimitErrorMapper, // 429
+  createDefaultErrorMappers, // All combined
+  ERROR_REASONS, // Type-safe reason constants
+} from '@actflow/next';
+```
 
-defineAction<S extends z.ZodType, Out, T extends TagFns>(
-  config: {
-    name: string;
-    input: S; // Zod schema (required)
-    handler: (args: { input: z.output<S>; ctx: { tags: T; invalidate: InvalidateFn } }) => Promise<Out>;
-  },
-  opts: {
-    tags: T;                    // required: your type-safe tag functions
-    invalidate?: InvalidateFn;  // optional: custom invalidation (defaults to Next revalidateTag)
+### Custom Error Mapping
+
+```ts
+// Create custom mapper for your domain errors
+const customMapper = (error: unknown): FormState | null => {
+  if (error instanceof PrismaClientKnownRequestError) {
+    if (error.code === 'P2002') {
+      return {
+        ok: false,
+        reason: 'CONFLICT',
+        formError: 'This already exists',
+      };
+    }
   }
-): (payload: z.input<S>) => Promise<Out>;
+  return null;
+};
+
+// Combine with built-in mappers
+const appErrorMapper = combineErrorMappers(customMapper, createDefaultErrorMappers());
+
+// Use in forms
+export const myForm = bindFormAction(myAction, {
+  fromForm: (fd) => ({
+    /* ... */
+  }),
+  mapError: appErrorMapper,
+  unmappedErrorStrategy: 'generic', // or 'throw'
+});
 ```
 
-- **Server-only**: importing/running on the client throws a clear error.
-- **Types flow**: caller passes `z.input<S>`, handler receives `z.output<S>`.
-- **`ctx.tags` inference**: `T` flows through so `ctx.tags.post({ id })` is fully typed.
+### Error Reasons
 
-### `defineActionWithTags({ tags, invalidate? })`
+Form state includes typed `reason` field for error categorization:
 
 ```ts
-defineActionWithTags<T extends TagFns>(base: {
-  tags: T;
-  invalidate?: InvalidateFn;
-}): <S extends z.ZodType, Out>(config: {
-  name: string;
-  input: S;
-  handler: (args: { input: z.output<S>; ctx: { tags: T; invalidate: InvalidateFn } }) => Promise<Out>;
-}, local?: { invalidate?: InvalidateFn }) => (payload: z.input<S>) => Promise<Out>;
+type FormState<F = string> =
+  | { ok: true; message?: string }
+  | {
+      ok: false;
+      reason?: 'AUTH' | 'VALIDATION' | 'NOT_FOUND' | 'CONFLICT' | 'RATE_LIMIT' | string;
+      formError?: string;
+      fieldErrors?: Partial<Record<F, string>>;
+    };
 ```
 
-### `createInvalidate(): InvalidateFn`
+---
 
-- Default **Next adapter**. Dynamically imports `next/cache` at runtime (server only).
-- If `next/cache` is unavailable, throws a helpful message.
+## API Reference
 
-### `defineKeyFactory(schema)`
+### Core Functions
 
-- `{ tags, keys }` from one schema (`tags.*()` for server invalidation; `keys.*()` for client caches).
+- `defineAction(config, { tags, invalidate? })` - Define a server action
+- `defineActionWithTags({ tags })` - Create action factory with bound tags
+- `bindFormAction(action, config)` - Wrap action for React 19 forms
+- `defineKeyFactory(schema)` - Create typed tags/keys from one schema
 
-### `bindFormAction(action, { fromForm, toSuccessState? })`
+### Error Handling
 
-- Wrap a server action into a **React 19 form action** compatible with both `<form action={fn}>` and `useActionState`.
-- **Maps `ZodError` to `{ ok:false, fieldErrors }`**; other errors are thrown (can be mapped later via an option).
+- `createAuthErrorMapper(options?)` - Map 401/403 errors
+- `createValidationErrorMapper(options?)` - Map 400/validation errors
+- `createNotFoundErrorMapper(options?)` - Map 404 errors
+- `createConflictErrorMapper(options?)` - Map 409 errors
+- `createRateLimitErrorMapper(options?)` - Map 429 errors
+- `createDefaultErrorMappers(options?)` - All mappers combined
+- `combineErrorMappers(...mappers)` - Chain multiple mappers
 
 ### Types
 
-- `FormState<F = string> = { ok:true; message? } | { ok:false; formError?; fieldErrors?: Partial<Record<F,string>> }`
-- `FormAction` (overloaded): `(fd) => Promise<FormState>` **or** `(prevState, fd) => Promise<FormState>`
+- `FormState<F>` - Form submission result type
+- `FormAction<F>` - React 19 form action signature
+- `ErrorMapper<F>` - Error mapping function type
+- `ERROR_REASONS` - Constants for error reasons
 
 ---
 
-## Guarantees & Safety
+## Migration from v0.2
 
-- **No app state ownership**: actflow never owns DB/session. You inject only `tags` (and optionally `invalidate`).
-- **Server-only guard**: invalidation and action helpers are gated; client use fails fast.
-- **Drift-free**: keys/tags originate from one schema; fewer typos, fewer mismatches.
-- **React 19–first**: we standardize the **form rail**; non-form mutation hooks remain optional.
+No breaking changes in the public API
 
----
-
-## FAQ
-
-- **Does actflow ship a cache?** No. It standardizes _mutation flow_; keep using your existing cache (RSC tags, React Query, etc.).
-- **Do I need React Query?** No. Adapters are optional.
-- **How do I customize invalidation?** Inject `invalidate` in `defineAction(...)` or per-action via `defineActionWithTags(..., { invalidate })`.
-- **Where are retries/outbox?** On the roadmap; current focus is a solid server action rail, tag safety, and form rail.
+- Error handling system with built-in mappers
+- Simplified imports (no more subpaths needed)
+- `reason` field in FormState for error categorization
 
 ---
 
