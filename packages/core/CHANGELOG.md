@@ -1,5 +1,11 @@
 # @actflow/core
 
+## 0.2.1
+
+### Patch Changes
+
+- delete "use server" directives
+
 ## 0.2.0
 
 ### Minor Changes
