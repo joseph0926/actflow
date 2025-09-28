@@ -16,6 +16,7 @@ const config = [
       '**/coverage/**',
       '**/node_modules/**',
       '**/.next/**',
+      '**/generated/**',
       '**/next-env.d.ts',
       'eslint.config.{js,mjs,cjs,ts}',
     ],
