@@ -15,6 +15,8 @@ const config = [
       '**/.turbo/**',
       '**/coverage/**',
       '**/node_modules/**',
+      '**/.next/**',
+      '**/next-env.d.ts',
       'eslint.config.{js,mjs,cjs,ts}',
     ],
   },

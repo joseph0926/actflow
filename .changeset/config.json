@@ -7,5 +7,5 @@
   "updateInternalDependencies": "patch",
   "linked": [],
   "fixed": [],
-  "ignore": ["@actflow/react", "@actflow/adapter-react-query"]
+  "ignore": ["@actflow/react", "@actflow/adapter-react-query", "@actflow/web"]
 }

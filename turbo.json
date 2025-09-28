@@ -11,7 +11,7 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".tsbuildinfo", "tsconfig.tsbuildinfo"],
+      "outputs": ["dist/**", ".tsbuildinfo", "tsconfig.tsbuildinfo", ".next"],
       "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.build.json"]
     },
     "clean": { "cache": false }
